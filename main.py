@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import HTMLResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from favicon_core import (
     MAX_UPLOAD_BYTES,
@@ -18,7 +19,11 @@ from favicon_core import (
 
 app = FastAPI(title="Favicon Generator")
 
-HTML_CONTENT = (Path(__file__).parent / "static" / "index.html").read_text(encoding="utf-8")
+STATIC_DIR = Path(__file__).parent / "static"
+HTML_CONTENT = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
+# Design-Tokens und Schriften (relativ aus index.html referenziert, damit der Subpath passt)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 async def read_limited(file: UploadFile) -> bytes:
