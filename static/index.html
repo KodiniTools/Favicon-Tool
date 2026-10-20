@@ -4,95 +4,208 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Favicon Generator - KodiniTools</title>
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0a1324" media="(prefers-color-scheme: dark)">
+    <!-- Theme vor dem ersten Paint setzen (Tokens: Dark auf :root, Light über data-theme),
+         wie im Collage Maker. Standard ist Light. -->
+    <script>
+        try {
+            document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+        } catch (e) {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+    <!-- Design-Tokens v2 (--ds-*), Kopie aus KodiniTools/Collage-Maker src/design-system/tokens-v2.css -->
+    <link rel="stylesheet" href="static/design-system/tokens-v2.css">
     <style>
+        /* Schrift: Supreme (400/500/700), wie im Collage Maker */
+        @font-face { font-family: 'Supreme'; font-weight: 400; font-style: normal; font-display: swap; src: url('static/fonts/Supreme-Regular.woff2') format('woff2'); }
+        @font-face { font-family: 'Supreme'; font-weight: 500; font-style: normal; font-display: swap; src: url('static/fonts/Supreme-Medium.woff2') format('woff2'); }
+        @font-face { font-family: 'Supreme'; font-weight: 700; font-style: normal; font-display: swap; src: url('static/fonts/Supreme-Bold.woff2') format('woff2'); }
+
+        :root[data-theme='dark'] { color-scheme: dark; }
+        :root[data-theme='light'] { color-scheme: light; }
+
         * { box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0f172a;
-            color: #f8fafc;
+            margin: 0;
+            font-family: var(--ds-font-sans);
+            font-size: var(--ds-text-lg);
+            line-height: var(--ds-leading);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: var(--ds-surface-0);
+            color: var(--ds-text);
+            transition: background-color var(--ds-duration-slow) var(--ds-ease), color var(--ds-duration-slow) var(--ds-ease);
+        }
+
+        /* === SSI-Partials (nav/footer außerhalb von #app), übernommen aus dem Collage Maker ===
+           Eigene Hintergründe entfernen, damit die Seitenfläche durchscheint — außer beim Cookie-Banner. */
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']) {
+            background-color: transparent !important;
+        }
+        :where(body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']))
+            :where(*:not(.cookie-banner):not(.cookie-consent):not([class*='cookie'])) {
+            background-color: transparent !important;
+        }
+        /* Dropdowns/Submenüs der SSI-Navigation bekommen wieder eine feste Fläche */
+        body > :not(#app):not(script) [class*='drop'],
+        body > :not(#app):not(script) [class*='sub-menu'],
+        body > :not(#app):not(script) [class*='submenu'],
+        body > :not(#app):not(script) [class*='popup'],
+        body > :not(#app):not(script) [class*='popover'],
+        body > :not(#app):not(script) [class*='megamenu'] {
+            background-color: var(--ds-surface-1) !important;
+        }
+        /* Hamburger-Balken und SVG-Icons der Navigation in Textfarbe */
+        body > :not(#app):not(script) span:empty,
+        body > :not(#app):not(script) [aria-expanded] > span:empty,
+        body > :not(#app):not(script) [aria-expanded] > span > span:empty,
+        body > :not(#app):not(script) [aria-expanded] > div > span:empty {
+            background-color: currentColor !important;
+            border-color: currentColor !important;
+        }
+        body > :not(#app):not(script) button svg line,
+        body > :not(#app):not(script) button svg path,
+        body > :not(#app):not(script) button svg rect,
+        body > :not(#app):not(script) [aria-expanded] svg line,
+        body > :not(#app):not(script) [aria-expanded] svg path,
+        body > :not(#app):not(script) [aria-expanded] svg rect,
+        body > :not(#app):not(script) [role='button'] svg line,
+        body > :not(#app):not(script) [role='button'] svg path,
+        body > :not(#app):not(script) [role='button'] svg rect {
+            stroke: currentColor !important;
+            fill: currentColor !important;
+        }
+        body > :not(#app):not(script) [class*='toggler-icon'] { filter: brightness(0) saturate(100%) !important; }
+        :root[data-theme='dark'] body > :not(#app):not(script) [class*='toggler-icon'] {
+            filter: brightness(0) saturate(100%) invert(1) !important;
+        }
+        /* Cookie-Banner: immer im Vordergrund, über Nav und Dropdowns */
+        .cookie-banner, .cookie-consent,
+        [class*='cookie-banner'], [class*='cookie-consent'],
+        [id*='cookie-banner'], [id*='cookie-consent'] {
+            z-index: 10000 !important;
+            position: fixed !important;
+        }
+        /* Textfarben der SSI-Partials aus den Tokens (Cookie-Banner ausgenommen) */
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']),
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) *:not([class*='cookie']):not([id*='cookie']) {
+            color: var(--ds-text) !important;
+        }
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:not([class*='cookie']):not([id*='cookie']),
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:not([class*='cookie']):not([id*='cookie']) * {
+            color: var(--ds-link) !important;
+        }
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:hover:not([class*='cookie']):not([id*='cookie']),
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:hover:not([class*='cookie']):not([id*='cookie']) * {
+            color: var(--ds-accent) !important;
+        }
+
+        /* === App === */
+        #app {
             display: flex;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1rem;
+            padding: var(--ds-space-12) var(--ds-space-4);
         }
         .card {
-            background: #1e293b;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            background: var(--ds-surface-1);
+            padding: var(--ds-space-10);
+            border-radius: var(--ds-radius-lg);
+            border: var(--ds-border-width) solid var(--ds-border);
             max-width: 520px;
             width: 100%;
             text-align: center;
-            border: 1px solid #334155;
         }
-        h1 { margin-top: 0; font-size: 1.6rem; color: #38bdf8; }
-        p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 1.5rem; }
+        h1 {
+            margin: 0 0 var(--ds-space-3);
+            font-size: var(--ds-text-2xl);
+            font-weight: var(--ds-weight-bold);
+            line-height: var(--ds-leading-tight);
+            letter-spacing: var(--ds-tracking-tight);
+            color: var(--ds-text);
+        }
+        p { color: var(--ds-text-2); font-size: var(--ds-text-md); margin: 0 0 var(--ds-space-6); }
+        code { font-family: var(--ds-font-mono); font-size: 0.9em; }
         .dropzone {
             display: block;
-            border: 2px dashed #475569;
-            border-radius: 8px;
-            padding: 2.5rem 1rem;
+            border: 2px dashed var(--ds-border-strong);
+            border-radius: var(--ds-radius-md);
+            padding: var(--ds-space-10) var(--ds-space-4);
             cursor: pointer;
-            transition: all 0.2s ease;
-            background: #0f172a;
+            color: var(--ds-text-2);
+            background: var(--ds-surface-0);
+            transition: border-color var(--ds-duration) var(--ds-ease), background-color var(--ds-duration) var(--ds-ease);
         }
-        .dropzone:hover, .dropzone.dragover { border-color: #38bdf8; background: #182234; }
+        .dropzone:hover, .dropzone.dragover { border-color: var(--ds-accent); background: var(--ds-accent-soft); color: var(--ds-text); }
+        .dropzone:focus-within { box-shadow: var(--ds-focus-ring); }
         input[type="file"] { display: none; }
         fieldset {
-            border: 1px solid #334155;
-            border-radius: 8px;
-            margin: 1.25rem 0 0;
-            padding: 0.75rem 1rem 1rem;
+            border: var(--ds-border-width) solid var(--ds-border);
+            border-radius: var(--ds-radius-md);
+            margin: var(--ds-space-5) 0 0;
+            padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-4);
             text-align: left;
         }
-        legend { color: #94a3b8; font-size: 0.85rem; padding: 0 0.4rem; }
-        .options { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
-        .options label { font-size: 0.9rem; cursor: pointer; }
+        legend { color: var(--ds-text-2); font-size: var(--ds-text-sm); font-weight: var(--ds-weight-medium); padding: 0 var(--ds-space-2); }
+        .options { display: flex; flex-wrap: wrap; gap: var(--ds-space-2) var(--ds-space-4); }
+        .options label { font-size: var(--ds-text-md); cursor: pointer; display: inline-flex; align-items: center; gap: var(--ds-space-1); }
+        input[type="radio"], input[type="checkbox"] { accent-color: var(--ds-accent); }
         input[type="text"] {
             width: 100%;
-            padding: 0.55rem 0.7rem;
-            border-radius: 6px;
-            border: 1px solid #475569;
-            background: #0f172a;
-            color: #f8fafc;
-            font-size: 0.9rem;
+            padding: var(--ds-space-2) var(--ds-space-3);
+            border-radius: var(--ds-radius-sm);
+            border: var(--ds-border-width) solid var(--ds-border-strong);
+            background: var(--ds-surface-1);
+            color: var(--ds-text);
+            font: inherit;
+            font-size: var(--ds-text-sm);
         }
-        #preview { display: none; margin-top: 1.25rem; align-items: flex-end; justify-content: center; gap: 1rem; }
-        #preview figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
-        #preview figcaption { font-size: 0.75rem; color: #94a3b8; }
+        input[type="text"]::placeholder { color: var(--ds-text-3); }
+        input:focus-visible, button:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+        #preview { display: none; margin-top: var(--ds-space-5); align-items: flex-end; justify-content: center; gap: var(--ds-space-4); }
+        #preview figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-1); }
+        #preview figcaption { font-size: var(--ds-text-xs); color: var(--ds-text-3); }
         #preview canvas {
             /* Schachbrett zur Darstellung von Transparenz */
-            background: repeating-conic-gradient(#334155 0% 25%, #1e293b 0% 50%) 0 0 / 8px 8px;
+            background: repeating-conic-gradient(var(--ds-surface-3) 0% 25%, var(--ds-surface-1) 0% 50%) 0 0 / 8px 8px;
             image-rendering: pixelated;
+            border: var(--ds-border-width) solid var(--ds-border);
             border-radius: 2px;
         }
-        .buttons { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        .buttons { display: flex; gap: var(--ds-space-3); margin-top: var(--ds-space-6); }
         button {
             flex: 1;
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 0.85rem;
-            border-radius: 6px;
-            font-weight: 600;
+            min-height: var(--ds-control-lg);
+            background: var(--ds-accent);
+            color: var(--ds-on-accent);
+            border: var(--ds-border-width) solid transparent;
+            padding: var(--ds-space-3);
+            border-radius: var(--ds-radius-md);
+            font: inherit;
+            font-size: var(--ds-text-lg);
+            font-weight: var(--ds-weight-semibold);
             cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.2s;
+            transition: background-color var(--ds-duration) var(--ds-ease), border-color var(--ds-duration) var(--ds-ease);
         }
-        button:hover { background: #0369a1; }
-        button.secondary { background: #334155; }
-        button.secondary:hover { background: #475569; }
+        button:hover { background: var(--ds-accent-hover); }
+        button.secondary { background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-border-strong); }
+        button.secondary:hover { background: var(--ds-surface-3); border-color: var(--ds-accent); }
         button:disabled { opacity: 0.6; cursor: wait; }
-        #status { margin-top: 1rem; font-size: 0.95rem; min-height: 1.2rem; }
+        #status { margin-top: var(--ds-space-4); font-size: var(--ds-text-md); font-weight: var(--ds-weight-medium); min-height: 1.5em; }
         @media (max-width: 480px) {
-            .card { padding: 1.5rem; }
+            #app { padding: var(--ds-space-6) var(--ds-space-4); }
+            .card { padding: var(--ds-space-6); }
             .buttons { flex-direction: column; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
         }
     </style>
 </head>
 <body>
+    <!--#include virtual="/partials/nav.html" -->
+    <main id="app">
     <div class="card">
         <h1>Favicon Konverter</h1>
         <p>Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP – max. 10&nbsp;MB) ein <code>favicon.ico</code> oder ein komplettes Favicon-Paket.</p>
@@ -132,10 +245,23 @@
                 <button type="button" id="btnPkg" class="secondary">Komplettes Paket (ZIP)</button>
             </div>
         </form>
-        <div id="status"></div>
+        <div id="status" role="status" aria-live="polite"></div>
     </div>
+    </main>
+    <!--#include virtual="/partials/footer.html" -->
+    <!--#include virtual="/partials/cookie-banner.html" -->
 
     <script>
+        // Theme-Wechsel der globalen SSI-Navigation (html[data-theme]) übernehmen:
+        // body.light-theme für Token-Parität, Auswahl in localStorage merken.
+        function syncTheme() {
+            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            document.body.classList.toggle('light-theme', theme === 'light');
+            try { localStorage.setItem('theme', theme); } catch (_) { /* Storage gesperrt */ }
+        }
+        syncTheme();
+        new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
         const MAX_BYTES = 10 * 1024 * 1024;
         const ALLOWED_SIZES = [16, 24, 32, 48, 64, 128, 256];
         const DEFAULT_SIZES = [16, 32, 48, 64];
@@ -210,7 +336,7 @@
             };
             img.onerror = () => {
                 URL.revokeObjectURL(url);
-                setStatus('Vorschau nicht möglich – Datei ist evtl. kein gültiges Bild.', '#fbbf24');
+                setStatus('Vorschau nicht möglich – Datei ist evtl. kein gültiges Bild.', 'var(--ds-warning)');
             };
             img.src = url;
         }
@@ -221,7 +347,7 @@
             if (!file) return;
             labelText.textContent = file.name;
             if (file.size > MAX_BYTES) {
-                setStatus('Datei zu groß (max. 10 MB).', '#f87171');
+                setStatus('Datei zu groß (max. 10 MB).', 'var(--ds-danger)');
                 return;
             }
             loadPreview(file);
@@ -256,11 +382,11 @@
         async function generate(endpoint, filename, extraFields) {
             const file = fileInput.files[0];
             if (!file) {
-                setStatus('Bitte zuerst eine Datei auswählen.', '#f87171');
+                setStatus('Bitte zuerst eine Datei auswählen.', 'var(--ds-danger)');
                 return;
             }
             if (file.size > MAX_BYTES) {
-                setStatus('Datei zu groß (max. 10 MB).', '#f87171');
+                setStatus('Datei zu groß (max. 10 MB).', 'var(--ds-danger)');
                 return;
             }
 
@@ -270,7 +396,7 @@
             for (const [k, v] of Object.entries(extraFields)) formData.append(k, v);
 
             btnIco.disabled = btnPkg.disabled = true;
-            setStatus('Wird verarbeitet...', '#38bdf8');
+            setStatus('Wird verarbeitet...', 'var(--ds-info)');
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 60000);
 
@@ -289,10 +415,10 @@
                 a.remove();
                 setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-                setStatus('Fertig! Download gestartet.', '#4ade80');
+                setStatus('Fertig! Download gestartet.', 'var(--ds-success)');
             } catch (err) {
                 const msg = err.name === 'AbortError' ? 'Zeitüberschreitung – bitte erneut versuchen.' : err.message;
-                setStatus(msg, '#f87171');
+                setStatus(msg, 'var(--ds-danger)');
             } finally {
                 clearTimeout(timeout);
                 btnIco.disabled = btnPkg.disabled = false;
@@ -303,7 +429,7 @@
             e.preventDefault();
             const sizes = selectedSizes();
             if (!sizes.length) {
-                setStatus('Mindestens eine Größe auswählen.', '#f87171');
+                setStatus('Mindestens eine Größe auswählen.', 'var(--ds-danger)');
                 return;
             }
             generate('convert', 'favicon.ico', { sizes: sizes.join(',') });

@@ -1,5 +1,6 @@
 import io
 import json
+import re
 import zipfile
 
 import pytest
@@ -170,3 +171,28 @@ def test_package_contents():
 
 def test_package_app_name_too_long():
     assert post("/package", image_bytes(), app_name="x" * 61).status_code == 400
+
+
+# --- Design System / Partials ------------------------------------------------
+
+def test_index_uses_design_system_and_partials():
+    html = client.get("/").text
+    assert 'href="static/design-system/tokens-v2.css"' in html
+    for partial in ("nav", "footer", "cookie-banner"):
+        assert f'<!--#include virtual="/partials/{partial}.html" -->' in html
+    # App-Inhalt liegt in #app, damit die Partial-Regeln ihn nicht treffen
+    assert '<main id="app">' in html
+    # Farben nur über Tokens; feste Hex-Werte allein in den theme-color-Metas
+    style = html[html.index("<style>"):html.index("</style>")]
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b", style)
+
+
+def test_static_tokens_and_fonts_served():
+    css = client.get("/static/design-system/tokens-v2.css")
+    assert css.status_code == 200
+    assert css.headers["content-type"].startswith("text/css")
+    assert "--ds-accent:" in css.text and ":root[data-theme='light']" in css.text
+    for weight in ("Regular", "Medium", "Bold"):
+        font = client.get(f"/static/fonts/Supreme-{weight}.woff2")
+        assert font.status_code == 200
+        assert font.content[:4] == b"wOF2"
