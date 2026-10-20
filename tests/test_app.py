@@ -1,7 +1,10 @@
 import io
 import json
+import os
 import re
+import subprocess
 import zipfile
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -196,3 +199,11 @@ def test_static_tokens_and_fonts_served():
         font = client.get(f"/static/fonts/Supreme-{weight}.woff2")
         assert font.status_code == 200
         assert font.content[:4] == b"wOF2"
+
+
+# --- deploy.sh -----------------------------------------------------------------
+
+def test_deploy_script_is_executable_and_valid_bash():
+    script = Path(__file__).resolve().parent.parent / "deploy.sh"
+    assert os.access(script, os.X_OK)
+    assert subprocess.run(["bash", "-n", str(script)]).returncode == 0
