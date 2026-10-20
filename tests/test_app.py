@@ -1,0 +1,172 @@
+import io
+import json
+import zipfile
+
+import pytest
+from fastapi.testclient import TestClient
+from PIL import Image
+
+import favicon_core
+from favicon_core import FitMode, ImageValidationError, make_square, parse_sizes
+from main import app
+
+client = TestClient(app)
+
+
+def image_bytes(size=(100, 50), fmt="PNG", mode="RGBA", color=(255, 0, 0, 255)) -> bytes:
+    img = Image.new(mode, size, color if mode == "RGBA" else color[:3])
+    buf = io.BytesIO()
+    img.save(buf, format=fmt)
+    return buf.getvalue()
+
+
+def ico_sizes(data: bytes) -> set[tuple[int, int]]:
+    return Image.open(io.BytesIO(data)).info["sizes"]
+
+
+def post(endpoint, data: bytes, filename="logo.png", **fields):
+    return client.post(endpoint, files={"file": (filename, data, "image/png")}, data=fields)
+
+
+# --- parse_sizes -------------------------------------------------------------
+
+def test_parse_sizes_default():
+    assert parse_sizes(None) == (16, 32, 48, 64)
+    assert parse_sizes("  ") == (16, 32, 48, 64)
+
+
+def test_parse_sizes_sorted_and_deduplicated():
+    assert parse_sizes("48, 16,16,256") == (16, 48, 256)
+
+
+@pytest.mark.parametrize("raw", ["abc", "17", "512", ",", "0"])
+def test_parse_sizes_invalid(raw):
+    with pytest.raises(ImageValidationError):
+        parse_sizes(raw)
+
+
+# --- make_square -------------------------------------------------------------
+
+def test_make_square_pad_keeps_full_image_transparent_edges():
+    img = Image.new("RGBA", (100, 50), (255, 0, 0, 255))
+    sq = make_square(img, FitMode.PAD, 16)
+    assert sq.size == (100, 100)
+    assert sq.getpixel((50, 0))[3] == 0  # aufgefüllter Rand transparent
+    assert sq.getpixel((50, 50)) == (255, 0, 0, 255)
+
+
+def test_make_square_crop():
+    img = Image.new("RGBA", (100, 50), (255, 0, 0, 255))
+    sq = make_square(img, FitMode.CROP, 16)
+    assert sq.size == (50, 50)
+    assert sq.getpixel((0, 0)) == (255, 0, 0, 255)
+
+
+def test_make_square_upscales_small_images():
+    img = Image.new("RGBA", (10, 10))
+    assert make_square(img, FitMode.PAD, 64).size == (64, 64)
+
+
+# --- /convert ------------------------------------------------------------------
+
+def test_index():
+    res = client.get("/")
+    assert res.status_code == 200
+    assert "Favicon Konverter" in res.text
+
+
+def test_convert_default_sizes_backward_compatible():
+    res = post("/convert", image_bytes((256, 256)))
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "image/x-icon"
+    assert ico_sizes(res.content) == {(16, 16), (32, 32), (48, 48), (64, 64)}
+
+
+def test_convert_non_square_and_small_image_contains_all_sizes():
+    # Vorher: nur ein verzerrtes 16x8-Icon
+    res = post("/convert", image_bytes((40, 20)))
+    assert res.status_code == 200
+    assert ico_sizes(res.content) == {(16, 16), (32, 32), (48, 48), (64, 64)}
+
+
+def test_convert_custom_sizes_and_crop():
+    res = post("/convert", image_bytes((300, 100)), sizes="16,256", fit="crop")
+    assert res.status_code == 200
+    assert ico_sizes(res.content) == {(16, 16), (256, 256)}
+
+
+def test_convert_jpeg_rgb():
+    res = post("/convert", image_bytes((64, 64), fmt="JPEG", mode="RGB"), filename="a.jpg")
+    assert res.status_code == 200
+
+
+def test_convert_invalid_size_param():
+    res = post("/convert", image_bytes(), sizes="999")
+    assert res.status_code == 400
+    assert "nicht erlaubt" in res.json()["detail"].lower()
+
+
+def test_convert_invalid_fit_param():
+    assert post("/convert", image_bytes(), fit="stretch").status_code == 422
+
+
+def test_convert_not_an_image():
+    res = post("/convert", b"hello world", filename="x.png")
+    assert res.status_code == 415
+
+
+def test_convert_empty_file():
+    assert post("/convert", b"").status_code == 400
+
+
+def test_convert_unsupported_format():
+    buf = io.BytesIO()
+    Image.new("RGB", (32, 32)).save(buf, format="TIFF")
+    assert post("/convert", buf.getvalue(), filename="a.tiff").status_code == 415
+
+
+def test_convert_too_large_upload(monkeypatch):
+    monkeypatch.setattr("main.MAX_UPLOAD_BYTES", 100)
+    assert post("/convert", image_bytes((256, 256))).status_code == 413
+
+
+def test_convert_too_many_pixels(monkeypatch):
+    monkeypatch.setattr(favicon_core, "MAX_PIXELS", 100)
+    res = post("/convert", image_bytes((20, 20)))
+    assert res.status_code == 400
+    assert "abmessungen" in res.json()["detail"].lower()
+
+
+# --- /package ------------------------------------------------------------------
+
+def test_package_contents():
+    res = post("/package", image_bytes((300, 200)), app_name="Meine Seite")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/zip"
+
+    zf = zipfile.ZipFile(io.BytesIO(res.content))
+    expected = {
+        "favicon.ico": None,
+        "favicon-16x16.png": (16, 16),
+        "favicon-32x32.png": (32, 32),
+        "apple-touch-icon.png": (180, 180),
+        "android-chrome-192x192.png": (192, 192),
+        "android-chrome-512x512.png": (512, 512),
+        "site.webmanifest": None,
+        "favicon-snippet.html": None,
+    }
+    assert set(zf.namelist()) == set(expected)
+    for name, size in expected.items():
+        if size:
+            assert Image.open(io.BytesIO(zf.read(name))).size == size
+
+    assert ico_sizes(zf.read("favicon.ico")) == {(16, 16), (32, 32), (48, 48)}
+    assert Image.open(io.BytesIO(zf.read("apple-touch-icon.png"))).mode == "RGB"
+
+    manifest = json.loads(zf.read("site.webmanifest"))
+    assert manifest["name"] == "Meine Seite"
+    assert len(manifest["icons"]) == 2
+
+
+def test_package_app_name_too_long():
+    assert post("/package", image_bytes(), app_name="x" * 61).status_code == 400

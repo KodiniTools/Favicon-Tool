@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Generator - KodiniTools</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+        }
+        .card {
+            background: #1e293b;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+        h1 { margin-top: 0; font-size: 1.6rem; color: #38bdf8; }
+        p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 1.5rem; }
+        .dropzone {
+            display: block;
+            border: 2px dashed #475569;
+            border-radius: 8px;
+            padding: 2.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #0f172a;
+        }
+        .dropzone:hover, .dropzone.dragover { border-color: #38bdf8; background: #182234; }
+        input[type="file"] { display: none; }
+        fieldset {
+            border: 1px solid #334155;
+            border-radius: 8px;
+            margin: 1.25rem 0 0;
+            padding: 0.75rem 1rem 1rem;
+            text-align: left;
+        }
+        legend { color: #94a3b8; font-size: 0.85rem; padding: 0 0.4rem; }
+        .options { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+        .options label { font-size: 0.9rem; cursor: pointer; }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.55rem 0.7rem;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 0.9rem;
+        }
+        #preview { display: none; margin-top: 1.25rem; align-items: flex-end; justify-content: center; gap: 1rem; }
+        #preview figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+        #preview figcaption { font-size: 0.75rem; color: #94a3b8; }
+        #preview canvas {
+            /* Schachbrett zur Darstellung von Transparenz */
+            background: repeating-conic-gradient(#334155 0% 25%, #1e293b 0% 50%) 0 0 / 8px 8px;
+            image-rendering: pixelated;
+            border-radius: 2px;
+        }
+        .buttons { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        button {
+            flex: 1;
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 0.85rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0369a1; }
+        button.secondary { background: #334155; }
+        button.secondary:hover { background: #475569; }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        #status { margin-top: 1rem; font-size: 0.95rem; min-height: 1.2rem; }
+        @media (max-width: 480px) {
+            .card { padding: 1.5rem; }
+            .buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Favicon Konverter</h1>
+        <p>Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP – max. 10&nbsp;MB) ein <code>favicon.ico</code> oder ein komplettes Favicon-Paket.</p>
+
+        <form id="uploadForm">
+            <label class="dropzone" id="dropzone">
+                <span id="label-text">Datei auswählen oder hierher ziehen</span>
+                <input type="file" id="fileInput" name="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" required>
+            </label>
+
+            <div id="preview">
+                <figure><canvas id="pv64" width="64" height="64"></canvas><figcaption>64</figcaption></figure>
+                <figure><canvas id="pv32" width="32" height="32"></canvas><figcaption>32</figcaption></figure>
+                <figure><canvas id="pv16" width="16" height="16"></canvas><figcaption>16</figcaption></figure>
+            </div>
+
+            <fieldset>
+                <legend>Nicht-quadratische Bilder</legend>
+                <div class="options">
+                    <label><input type="radio" name="fit" value="pad" checked> Transparent auffüllen</label>
+                    <label><input type="radio" name="fit" value="crop"> Mittig zuschneiden</label>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>ICO-Größen (px)</legend>
+                <div class="options" id="sizeOptions"></div>
+            </fieldset>
+
+            <fieldset>
+                <legend>App-Name für site.webmanifest (optional, nur Paket)</legend>
+                <input type="text" id="appName" maxlength="60" placeholder="z. B. Meine Webseite">
+            </fieldset>
+
+            <div class="buttons">
+                <button type="submit" id="btnIco">favicon.ico</button>
+                <button type="button" id="btnPkg" class="secondary">Komplettes Paket (ZIP)</button>
+            </div>
+        </form>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const MAX_BYTES = 10 * 1024 * 1024;
+        const ALLOWED_SIZES = [16, 24, 32, 48, 64, 128, 256];
+        const DEFAULT_SIZES = [16, 32, 48, 64];
+
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const labelText = document.getElementById('label-text');
+        const form = document.getElementById('uploadForm');
+        const status = document.getElementById('status');
+        const preview = document.getElementById('preview');
+        const sizeOptions = document.getElementById('sizeOptions');
+        const btnIco = document.getElementById('btnIco');
+        const btnPkg = document.getElementById('btnPkg');
+        const appName = document.getElementById('appName');
+
+        let previewImage = null;
+
+        for (const size of ALLOWED_SIZES) {
+            const label = document.createElement('label');
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.name = 'size';
+            cb.value = String(size);
+            cb.checked = DEFAULT_SIZES.includes(size);
+            label.append(cb, ' ' + size);
+            sizeOptions.append(label);
+        }
+
+        function setStatus(text, color) {
+            status.textContent = text;
+            status.style.color = color;
+        }
+
+        function currentFit() {
+            return form.querySelector('input[name="fit"]:checked').value;
+        }
+
+        function selectedSizes() {
+            return [...sizeOptions.querySelectorAll('input:checked')].map(cb => cb.value);
+        }
+
+        function drawPreview() {
+            if (!previewImage) return;
+            const w = previewImage.naturalWidth;
+            const h = previewImage.naturalHeight;
+            const crop = currentFit() === 'crop';
+            for (const size of [64, 32, 16]) {
+                const ctx = document.getElementById('pv' + size).getContext('2d');
+                ctx.clearRect(0, 0, size, size);
+                ctx.imageSmoothingQuality = 'high';
+                if (crop) {
+                    const side = Math.min(w, h);
+                    ctx.drawImage(previewImage, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+                } else {
+                    const scale = size / Math.max(w, h);
+                    const dw = w * scale, dh = h * scale;
+                    ctx.drawImage(previewImage, (size - dw) / 2, (size - dh) / 2, dw, dh);
+                }
+            }
+            preview.style.display = 'flex';
+        }
+
+        function loadPreview(file) {
+            previewImage = null;
+            preview.style.display = 'none';
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                previewImage = img;
+                drawPreview();
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                setStatus('Vorschau nicht möglich – Datei ist evtl. kein gültiges Bild.', '#fbbf24');
+            };
+            img.src = url;
+        }
+
+        function onFileSelected() {
+            setStatus('', '');
+            const file = fileInput.files[0];
+            if (!file) return;
+            labelText.textContent = file.name;
+            if (file.size > MAX_BYTES) {
+                setStatus('Datei zu groß (max. 10 MB).', '#f87171');
+                return;
+            }
+            loadPreview(file);
+        }
+
+        fileInput.addEventListener('change', onFileSelected);
+        form.querySelectorAll('input[name="fit"]').forEach(r => r.addEventListener('change', drawPreview));
+
+        ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        }));
+        ['dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, e => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+        }));
+        dropzone.addEventListener('drop', e => {
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                onFileSelected();
+            }
+        });
+
+        async function errorMessage(res) {
+            try {
+                const data = await res.json();
+                if (typeof data.detail === 'string') return data.detail;
+            } catch (_) { /* keine JSON-Antwort */ }
+            return 'Konvertierung fehlgeschlagen (HTTP ' + res.status + ')';
+        }
+
+        async function generate(endpoint, filename, extraFields) {
+            const file = fileInput.files[0];
+            if (!file) {
+                setStatus('Bitte zuerst eine Datei auswählen.', '#f87171');
+                return;
+            }
+            if (file.size > MAX_BYTES) {
+                setStatus('Datei zu groß (max. 10 MB).', '#f87171');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('fit', currentFit());
+            for (const [k, v] of Object.entries(extraFields)) formData.append(k, v);
+
+            btnIco.disabled = btnPkg.disabled = true;
+            setStatus('Wird verarbeitet...', '#38bdf8');
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 60000);
+
+            try {
+                // Relativer Aufruf passend zum Subpath
+                const res = await fetch(endpoint, { method: 'POST', body: formData, signal: controller.signal });
+                if (!res.ok) throw new Error(await errorMessage(res));
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+                setStatus('Fertig! Download gestartet.', '#4ade80');
+            } catch (err) {
+                const msg = err.name === 'AbortError' ? 'Zeitüberschreitung – bitte erneut versuchen.' : err.message;
+                setStatus(msg, '#f87171');
+            } finally {
+                clearTimeout(timeout);
+                btnIco.disabled = btnPkg.disabled = false;
+            }
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const sizes = selectedSizes();
+            if (!sizes.length) {
+                setStatus('Mindestens eine Größe auswählen.', '#f87171');
+                return;
+            }
+            generate('convert', 'favicon.ico', { sizes: sizes.join(',') });
+        });
+
+        btnPkg.addEventListener('click', () => {
+            if (!fileInput.reportValidity()) return;
+            generate('package', 'favicon-package.zip', { app_name: appName.value });
+        });
+    </script>
+</body>
+</html>
