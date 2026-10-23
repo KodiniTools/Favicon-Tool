@@ -11,7 +11,16 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 import favicon_core
-from favicon_core import FitMode, ImageValidationError, make_square, parse_sizes
+from favicon_core import (
+    FitMode,
+    IconStyle,
+    ImageValidationError,
+    apply_style,
+    make_square,
+    parse_color,
+    parse_sizes,
+    parse_style,
+)
 from main import app
 
 client = TestClient(app)
@@ -205,6 +214,8 @@ def test_package_contents():
         "apple-touch-icon.png": (180, 180),
         "android-chrome-192x192.png": (192, 192),
         "android-chrome-512x512.png": (512, 512),
+        "android-chrome-maskable-192x192.png": (192, 192),
+        "android-chrome-maskable-512x512.png": (512, 512),
         "site.webmanifest": None,
         "favicon-snippet.html": None,
     }
@@ -218,7 +229,11 @@ def test_package_contents():
 
     manifest = json.loads(zf.read("site.webmanifest"))
     assert manifest["name"] == "Meine Seite"
-    assert len(manifest["icons"]) == 2
+    assert len(manifest["icons"]) == 4
+    assert [i.get("purpose") for i in manifest["icons"]] == [None, None, "maskable", "maskable"]
+    # Ohne Optionen unverändert weiß
+    assert manifest["theme_color"] == manifest["background_color"] == "#ffffff"
+    assert zf.read("favicon-snippet.html").decode() == favicon_core.SNIPPET_HTML
 
 
 def test_package_app_name_too_long():
@@ -336,3 +351,111 @@ def test_ci_workflow_runs_pytest_and_ruff():
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     for cmd in ("pytest -q", "ruff check .", "ruff format --check ."):
         assert cmd in ci
+
+
+# --- Paket 2: Gestaltung, maskable, Manifest-Farben, Snippet --------------------
+
+
+def test_apply_style_default_is_noop():
+    img = Image.new("RGBA", (64, 64), (255, 0, 0, 255))
+    assert apply_style(img, IconStyle()) is img
+
+
+def test_apply_style_padding_background_radius():
+    img = Image.new("RGBA", (100, 100), (255, 0, 0, 255))
+    padded = apply_style(img, IconStyle(padding=20))
+    assert padded.size == (100, 100)
+    assert padded.getpixel((5, 5))[3] == 0  # Rand transparent
+    assert padded.getpixel((50, 50)) == (255, 0, 0, 255)
+
+    with_bg = apply_style(img, IconStyle(background="#00ff00", padding=20))
+    assert with_bg.getpixel((5, 5)) == (0, 255, 0, 255)
+
+    rounded = apply_style(img, IconStyle(background="#00ff00", radius=50))
+    assert rounded.getpixel((0, 0))[3] == 0  # Ecke abgerundet
+    assert rounded.getpixel((50, 50))[3] == 255
+    assert rounded.getpixel((50, 1))[3] > 0  # Kantenmitte bleibt
+
+
+def test_parse_color_and_style_validation():
+    assert parse_color(None) is None
+    assert parse_color("  ") is None
+    assert parse_color("#A1b2C3") == "#a1b2c3"
+    for bad in ("red", "#fff", "#12345g", "123456"):
+        with pytest.raises(ImageValidationError):
+            parse_color(bad)
+    assert parse_style(None, None, None) == IconStyle()
+    assert parse_style("#000000", "40", "50") == IconStyle("#000000", 40, 50)
+    for padding, radius in (("41", "0"), ("-1", "0"), ("0", "51"), ("x", "0"), ("1.5", "0")):
+        with pytest.raises(ImageValidationError):
+            parse_style(None, padding, radius)
+
+
+def test_convert_with_style_non_square_small_image():
+    res = post("/convert", image_bytes((9, 4)), sizes="16,32", background="#112233", padding="10", radius="25")
+    assert res.status_code == 200
+    ico = Image.open(io.BytesIO(res.content))
+    assert ico.info["sizes"] == {(16, 16), (32, 32)}
+    ico.size = (32, 32)
+    frame = ico.convert("RGBA")
+    assert frame.getpixel((0, 0))[3] == 0  # runde Ecke
+    assert frame.getpixel((16, 2))[:3] == (0x11, 0x22, 0x33)  # Hintergrund im Innenabstand
+
+
+def test_convert_invalid_style_localized():
+    res = post("/convert", image_bytes(), padding="99", lang="en")
+    assert res.status_code == 400
+    assert res.json()["detail"] == "Error: Padding must be between 0 and 40"
+    res = post("/convert", image_bytes(), background="blau")
+    assert res.status_code == 400
+    assert "Hintergrundfarbe ungültig" in res.json()["detail"]
+
+
+def test_package_with_style_and_theme_color():
+    res = post(
+        "/package",
+        image_bytes((40, 20), color=(255, 0, 0, 255)),
+        background="#0000ff",
+        padding="10",
+        radius="50",
+        theme_color="#ABCDEF",
+    )
+    assert res.status_code == 200
+    zf = zipfile.ZipFile(io.BytesIO(res.content))
+    manifest = json.loads(zf.read("site.webmanifest"))
+    assert manifest["theme_color"] == "#abcdef"
+    assert manifest["background_color"] == "#0000ff"
+    assert '<meta name="theme-color" content="#abcdef">' in zf.read("favicon-snippet.html").decode()
+
+    # Apple: deckend, ohne Eckenradius (iOS rundet selbst), Hintergrund = gewählte Farbe
+    apple = Image.open(io.BytesIO(zf.read("apple-touch-icon.png")))
+    assert apple.mode == "RGB"
+    assert apple.getpixel((0, 0)) == (0, 0, 255)
+
+    # Android: abgerundet -> Ecke transparent
+    android = Image.open(io.BytesIO(zf.read("android-chrome-512x512.png"))).convert("RGBA")
+    assert android.getpixel((0, 0))[3] == 0
+
+    # Maskable: vollflächig, Motiv nur innerhalb der Safe Zone (Kreis mit 40 % Radius)
+    mask = Image.open(io.BytesIO(zf.read("android-chrome-maskable-512x512.png")))
+    assert mask.mode == "RGB"
+    assert mask.getpixel((0, 0)) == (0, 0, 255)
+    assert mask.getpixel((256, 256)) == (255, 0, 0)
+    for x, y in ((256, 20), (20, 256), (256, 490)):
+        assert mask.getpixel((x, y)) == (0, 0, 255)
+
+
+def test_package_invalid_theme_color():
+    res = post("/package", image_bytes(), theme_color="#zzzzzz", lang="en")
+    assert res.status_code == 400
+    assert res.json()["detail"].startswith("Error: Theme color invalid")
+
+
+def test_snippet_endpoint():
+    res = client.get("/snippet")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/plain")
+    assert res.text == favicon_core.SNIPPET_HTML
+    res = client.get("/snippet", params={"theme_color": "#123456"})
+    assert res.text.endswith('<meta name="theme-color" content="#123456">\n')
+    assert client.get("/snippet", params={"theme_color": "x"}).status_code == 400

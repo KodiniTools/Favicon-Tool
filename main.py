@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from favicon_core import (
@@ -16,9 +16,12 @@ from favicon_core import (
     UnsupportedFormatError,
     build_ico,
     build_package,
+    build_snippet,
     load_image,
     normalize_app_name,
+    parse_color,
     parse_sizes,
+    parse_style,
 )
 
 app = FastAPI(title="Favicon Generator")
@@ -146,13 +149,17 @@ async def convert(
     file: UploadFile = File(...),
     sizes: str | None = Form(None),
     fit: FitMode = Form(FitMode.PAD),
+    background: str | None = Form(None),
+    padding: str | None = Form(None),
+    radius: str | None = Form(None),
     lang: Lang = Form(Lang.DE),
 ):
     data = await read_limited(file, lang)
     try:
         size_list = parse_sizes(sizes)
+        style = parse_style(background, padding, radius)
         img = await run_in_threadpool(load_image, data)
-        ico = await run_in_threadpool(build_ico, img, size_list, fit)
+        ico = await run_in_threadpool(build_ico, img, size_list, fit, style)
     except ImageValidationError as e:
         raise to_http_error(e, lang) from None
 
@@ -168,13 +175,19 @@ async def package(
     file: UploadFile = File(...),
     fit: FitMode = Form(FitMode.PAD),
     app_name: str | None = Form(None),
+    background: str | None = Form(None),
+    padding: str | None = Form(None),
+    radius: str | None = Form(None),
+    theme_color: str | None = Form(None),
     lang: Lang = Form(Lang.DE),
 ):
     data = await read_limited(file, lang)
     try:
         name = normalize_app_name(app_name)
+        style = parse_style(background, padding, radius)
+        theme = parse_color(theme_color, "Theme-Farbe", "Theme color")
         img = await run_in_threadpool(load_image, data)
-        archive = await run_in_threadpool(build_package, img, fit, name)
+        archive = await run_in_threadpool(build_package, img, fit, name, style, theme)
     except ImageValidationError as e:
         raise to_http_error(e, lang) from None
 
@@ -183,3 +196,12 @@ async def package(
         media_type="application/zip",
         headers={"Content-Disposition": "attachment; filename=favicon-package.zip"},
     )
+
+
+@app.get("/snippet", response_class=PlainTextResponse)
+def snippet(theme_color: str | None = Query(None), lang: Lang = Query(Lang.DE)):
+    """HTML-Snippet für den <head>, wie es im Paket als favicon-snippet.html liegt."""
+    try:
+        return build_snippet(parse_color(theme_color, "Theme-Farbe", "Theme color"))
+    except ImageValidationError as e:
+        raise to_http_error(e, lang) from None
