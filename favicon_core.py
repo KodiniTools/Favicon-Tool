@@ -157,7 +157,8 @@ def normalize_app_name(raw: str | None) -> str:
     name = (raw or "").strip()
     if len(name) > APP_NAME_MAX_LEN:
         raise ImageValidationError(
-            f"App-Name zu lang (max. {APP_NAME_MAX_LEN} Zeichen)", f"App name too long (max. {APP_NAME_MAX_LEN} characters)"
+            f"App-Name zu lang (max. {APP_NAME_MAX_LEN} Zeichen)",
+            f"App name too long (max. {APP_NAME_MAX_LEN} characters)",
         )
     return name
 

@@ -34,6 +34,7 @@ def post(endpoint, data: bytes, filename="logo.png", **fields):
 
 # --- parse_sizes -------------------------------------------------------------
 
+
 def test_parse_sizes_default():
     assert parse_sizes(None) == (16, 32, 48, 64)
     assert parse_sizes("  ") == (16, 32, 48, 64)
@@ -50,6 +51,7 @@ def test_parse_sizes_invalid(raw):
 
 
 # --- make_square -------------------------------------------------------------
+
 
 def test_make_square_pad_keeps_full_image_transparent_edges():
     img = Image.new("RGBA", (100, 50), (255, 0, 0, 255))
@@ -72,6 +74,7 @@ def test_make_square_upscales_small_images():
 
 
 # --- /convert ------------------------------------------------------------------
+
 
 def test_index():
     res = client.get("/")
@@ -188,6 +191,7 @@ def test_index_has_i18n_like_collage_maker():
 
 # --- /package ------------------------------------------------------------------
 
+
 def test_package_contents():
     res = post("/package", image_bytes((300, 200)), app_name="Meine Seite")
     assert res.status_code == 200
@@ -223,6 +227,7 @@ def test_package_app_name_too_long():
 
 # --- Design System / Partials ------------------------------------------------
 
+
 def test_index_uses_design_system_and_partials():
     html = client.get("/").text
     assert 'href="static/design-system/tokens-v2.css"' in html
@@ -231,7 +236,7 @@ def test_index_uses_design_system_and_partials():
     # App-Inhalt liegt in #app, damit die Partial-Regeln ihn nicht treffen
     assert '<main id="app">' in html
     # Farben nur über Tokens; feste Hex-Werte allein in den theme-color-Metas
-    style = html[html.index("<style>"):html.index("</style>")]
+    style = html[html.index("<style>") : html.index("</style>")]
     assert not re.search(r"#[0-9a-fA-F]{3,8}\b", style)
 
 
@@ -248,7 +253,86 @@ def test_static_tokens_and_fonts_served():
 
 # --- deploy.sh -----------------------------------------------------------------
 
+
 def test_deploy_script_is_executable_and_valid_bash():
     script = Path(__file__).resolve().parent.parent / "deploy.sh"
     assert os.access(script, os.X_OK)
     assert subprocess.run(["bash", "-n", str(script)]).returncode == 0
+    text = script.read_text(encoding="utf-8")
+    assert 'HEALTH_URL-http://127.0.0.1:8005/}"' in text
+    assert '"${HEALTH_URL%/}/health"' in text
+
+
+# --- Paket 1: /health, SEO, Barrierefreiheit, Projekt-Setup ---------------------
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def test_health():
+    res = client.get("/health")
+    assert res.status_code == 200
+    assert res.json() == {"status": "ok"}
+
+
+def head(html: str) -> str:
+    return html[: html.index("</head>")]
+
+
+def test_index_seo_german_default():
+    for url in ("/", "/?lang=de", "/?lang=fr"):
+        h = head(client.get(url).text)
+        assert '<html lang="de">' in h
+        assert "<title>Favicon Generator – favicon.ico &amp; Favicon-Paket erstellen | KodiniTools</title>" in h
+        assert '<meta name="description" content="Kostenloser Favicon Generator' in h
+        assert '<link rel="canonical" href="https://kodinitools.com/favicon-tool/">' in h
+        assert '<meta property="og:locale" content="de_DE">' in h
+        assert "<!--SEO-->" not in h
+
+
+def test_index_seo_english():
+    h = head(client.get("/?lang=en").text)
+    assert '<html lang="en">' in h
+    assert "<title>Favicon Generator – Create favicon.ico &amp; favicon package | KodiniTools</title>" in h
+    assert '<meta name="description" content="Free favicon generator' in h
+    assert '<link rel="canonical" href="https://kodinitools.com/favicon-tool/?lang=en">' in h
+    assert '<meta property="og:locale" content="en_US">' in h
+
+
+def test_index_hreflang_and_json_ld():
+    for url in ("/", "/?lang=en"):
+        h = head(client.get(url).text)
+        assert '<link rel="alternate" hreflang="de" href="https://kodinitools.com/favicon-tool/">' in h
+        assert '<link rel="alternate" hreflang="en" href="https://kodinitools.com/favicon-tool/?lang=en">' in h
+        assert '<link rel="alternate" hreflang="x-default" href="https://kodinitools.com/favicon-tool/">' in h
+        ld = re.search(r'<script type="application/ld\+json">(.*?)</script>', h).group(1)
+        data = json.loads(ld)
+        assert data["@type"] == "WebApplication"
+        assert data["inLanguage"] in ("de", "en")
+
+
+def test_render_index_requires_placeholders():
+    import main
+
+    with pytest.raises(RuntimeError):
+        main.render_index('<html lang="de"><head></head></html>', main.Lang.EN)
+
+
+def test_file_input_keyboard_accessible():
+    html = client.get("/").text
+    style = html[html.index("<style>") : html.index("</style>")]
+    assert 'input[type="file"] { display: none; }' not in style
+    assert "clip-path: inset(50%)" in style
+
+
+def test_requirements_pinned():
+    for name in ("requirements.txt", "requirements-dev.txt"):
+        for line in (ROOT / name).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith(("#", "-r")):
+                assert re.fullmatch(r"[A-Za-z0-9_.\-]+==[0-9][0-9A-Za-z.]*", line), line
+
+
+def test_ci_workflow_runs_pytest_and_ruff():
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    for cmd in ("pytest -q", "ruff check .", "ruff format --check ."):
+        assert cmd in ci
