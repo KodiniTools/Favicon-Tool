@@ -5,7 +5,7 @@ const en: Record<keyof typeof de, string> = {
   pageTitle: "Favicon Generator – Create favicon.ico & favicon package {'|'} KodiniTools",
   title: 'Favicon Converter',
   intro:
-    'Create a {file} or a complete favicon package from an image (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) or from text/emoji.',
+    'Upload an image (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) or enter text/emoji. You get a favicon as ICO, PNG, WebP, GIF, BMP or SVG, or a complete favicon package.',
   modeLabel: 'Source',
   modeImage: 'Image',
   modeText: 'Text / emoji',
@@ -24,7 +24,13 @@ const en: Record<keyof typeof de, string> = {
   fitPad: 'Pad with transparency',
   fitCrop: 'Crop to center',
   formatLegend: 'Output format',
-  formatHint: 'Several sizes as PNG or WebP are delivered as a ZIP.',
+  formatHint: 'Several sizes are delivered as a ZIP.',
+  formatHintGif:
+    'GIF only knows fully transparent or opaque pixels; soft edges become hard. Several sizes come as a ZIP.',
+  formatHintBmp:
+    'BMP has no transparency: transparent areas are filled white or with the background color. Several sizes come as a ZIP.',
+  formatHintSvg:
+    'SVG is scalable and always a single file. An uploaded SVG stays a vector graphic without styling; otherwise the image is embedded.',
   sizesLegend: 'Sizes (px)',
   styleLegend: 'Appearance',
   bgLabel: 'Background color',

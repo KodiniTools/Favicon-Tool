@@ -1,8 +1,10 @@
+import base64
 import io
 import json
 import os
 import re
 import subprocess
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
@@ -152,7 +154,54 @@ def test_convert_format_ico_explicit_and_invalid():
     res = post("/convert", image_bytes((64, 64)), format="ico")
     assert res.headers["content-type"] == "image/x-icon"
     assert "filename=favicon.ico" in res.headers["content-disposition"]
-    assert post("/convert", image_bytes(), format="gif").status_code == 422
+    assert post("/convert", image_bytes(), format="tiff").status_code == 422
+
+
+@pytest.mark.parametrize("fmt", ["gif", "bmp"])
+def test_convert_format_gif_bmp(fmt):
+    res = post("/convert", image_bytes((100, 50)), sizes="32", format=fmt)
+    assert res.status_code == 200
+    assert res.headers["content-type"] == f"image/{fmt}"
+    assert f"filename=favicon-32x32.{fmt}" in res.headers["content-disposition"]
+    img = Image.open(io.BytesIO(res.content))
+    assert img.format == fmt.upper() and img.size == (32, 32)
+
+
+def test_gif_keeps_transparency_bmp_uses_background():
+    img = Image.new("RGBA", (40, 20), (255, 0, 0, 255))
+    gif, _, _ = favicon_core.build_icons(img, (32,), FitMode.PAD, None, favicon_core.OutputFormat.GIF)
+    assert Image.open(io.BytesIO(gif)).convert("RGBA").getpixel((0, 0))[3] == 0
+    bmp, _, _ = favicon_core.build_icons(img, (32,), FitMode.PAD, None, favicon_core.OutputFormat.BMP)
+    assert Image.open(io.BytesIO(bmp)).convert("RGB").getpixel((0, 0)) == (255, 255, 255)
+    styled = IconStyle(background="#00ff00")
+    bmp, _, _ = favicon_core.build_icons(img, (32,), FitMode.PAD, styled, favicon_core.OutputFormat.BMP)
+    assert Image.open(io.BytesIO(bmp)).convert("RGB").getpixel((0, 0)) == (0, 255, 0)
+
+
+def test_convert_format_svg_embeds_raster():
+    res = post("/convert", image_bytes((64, 64)), sizes="16,32", format="svg")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("image/svg+xml")
+    assert "filename=favicon.svg" in res.headers["content-disposition"]
+    root = ET.fromstring(res.content)
+    assert root.get("viewBox") == "0 0 256 256"
+    image = root.find("{http://www.w3.org/2000/svg}image")
+    href = image.get("href")
+    assert href.startswith("data:image/png;base64,")
+    png = Image.open(io.BytesIO(base64.b64decode(href.split(",", 1)[1])))
+    assert png.size == (256, 256)
+
+
+def test_convert_format_svg_returns_original_svg_without_style():
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>'
+    res = post("/convert", image_bytes((64, 64)), format="svg", svg=svg)
+    assert res.text == svg
+    # mit Gestaltung: eingebettetes Raster, damit die Gestaltung erhalten bleibt
+    res = post("/convert", image_bytes((64, 64)), format="svg", svg=svg, background="#ffffff")
+    assert "data:image/png;base64," in res.text
+    # unsicheres SVG wird abgelehnt
+    bad = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+    assert post("/convert", image_bytes((64, 64)), format="svg", svg=bad).status_code == 400
 
 
 def test_build_icons_applies_style():
