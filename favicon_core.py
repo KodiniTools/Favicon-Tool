@@ -1,5 +1,6 @@
 """Bildverarbeitung für den Favicon-Generator (ohne Web-Abhängigkeiten, gut testbar)."""
 
+import base64
 import io
 import json
 import re
@@ -40,10 +41,19 @@ class OutputFormat(str, Enum):
     ICO = "ico"
     PNG = "png"
     WEBP = "webp"
+    GIF = "gif"
+    BMP = "bmp"
+    SVG = "svg"
 
 
-# Pillow-Formatname und Media-Type je Ausgabeformat (ohne ICO, das build_ico erzeugt)
-_RASTER_OUTPUT = {OutputFormat.PNG: ("PNG", "image/png"), OutputFormat.WEBP: ("WEBP", "image/webp")}
+# Media-Type je Rasterformat mit einer Datei pro Größe (ICO und SVG haben eigene Wege)
+_RASTER_MEDIA = {
+    OutputFormat.PNG: "image/png",
+    OutputFormat.WEBP: "image/webp",
+    OutputFormat.GIF: "image/gif",
+    OutputFormat.BMP: "image/bmp",
+}
+SVG_RASTER_MIN = 256  # Mindestkantenlänge des eingebetteten PNG in favicon.svg
 
 
 class ImageValidationError(ValueError):
@@ -213,31 +223,63 @@ def build_ico(img: Image.Image, sizes: tuple[int, ...], fit: FitMode, style: Ico
     return buf.getvalue()
 
 
+def _encode_frame(frame: Image.Image, fmt: OutputFormat, background: str | None) -> bytes:
+    buf = io.BytesIO()
+    if fmt is OutputFormat.WEBP:
+        frame.save(buf, format="WEBP", lossless=True)
+    elif fmt is OutputFormat.GIF:
+        # GIF kennt nur volle Transparenz je Pixel; Pillow setzt den transparenten Paletteneintrag
+        frame.save(buf, format="GIF")
+    elif fmt is OutputFormat.BMP:
+        # BMP-Alpha ignorieren die meisten Programme (transparente Flächen würden schwarz):
+        # auf die Hintergrundfarbe, sonst Weiß, legen und als 24-Bit-RGB speichern
+        canvas = Image.new("RGBA", frame.size, (*_rgb(background or "#ffffff"), 255))
+        canvas.alpha_composite(frame.convert("RGBA"))
+        canvas.convert("RGB").save(buf, format="BMP")
+    else:
+        frame.save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
+def _svg_with_raster(master: Image.Image, side: int) -> bytes:
+    png = _png(master, side)
+    data = base64.b64encode(png).decode("ascii")
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{side}" height="{side}" viewBox="0 0 {side} {side}">'
+        f'<image width="{side}" height="{side}" href="data:image/png;base64,{data}"/></svg>\n'
+    ).encode()
+
+
 def build_icons(
     img: Image.Image,
     sizes: tuple[int, ...],
     fit: FitMode,
     style: IconStyle | None = None,
     fmt: OutputFormat = OutputFormat.ICO,
+    svg_source: str | None = None,
 ) -> tuple[bytes, str, str]:
     """Icons im gewünschten Format: (Inhalt, Media-Type, Dateiname).
 
-    ICO enthält alle Größen in einer Datei. PNG/WebP liefern bei einer Größe die Datei direkt,
-    bei mehreren ein ZIP mit favicon-<n>x<n>.<ext> je Größe.
+    ICO enthält alle Größen in einer Datei. PNG/WebP/GIF/BMP liefern bei einer Größe die Datei
+    direkt, bei mehreren ein ZIP mit favicon-<n>x<n>.<ext> je Größe. SVG ist skalierbar und
+    immer eine Datei: das geprüfte Original-SVG, wenn eines vorliegt und keine Gestaltung
+    gewählt ist, sonst ein SVG mit eingebettetem PNG.
     """
+    style = style or IconStyle()
     if fmt is OutputFormat.ICO:
         return build_ico(img, sizes, fit, style), "image/x-icon", "favicon.ico"
-    pil_format, media_type = _RASTER_OUTPUT[fmt]
-    master = apply_style(make_square(img, fit, max(sizes)), style or IconStyle())
+    if fmt is OutputFormat.SVG:
+        if svg_source is not None and style == IconStyle():
+            return svg_source.encode("utf-8"), "image/svg+xml", "favicon.svg"
+        side = max(max(sizes), SVG_RASTER_MIN)
+        master = apply_style(make_square(img, fit, side), style)
+        return _svg_with_raster(master, side), "image/svg+xml", "favicon.svg"
+    media_type = _RASTER_MEDIA[fmt]
+    master = apply_style(make_square(img, fit, max(sizes)), style)
     files = {}
     for size in sizes:
-        buf = io.BytesIO()
         frame = master.resize((size, size), Image.Resampling.LANCZOS)
-        if pil_format == "WEBP":
-            frame.save(buf, format="WEBP", lossless=True)
-        else:
-            frame.save(buf, format="PNG", optimize=True)
-        files[f"favicon-{size}x{size}.{fmt.value}"] = buf.getvalue()
+        files[f"favicon-{size}x{size}.{fmt.value}"] = _encode_frame(frame, fmt, style.background)
     if len(files) == 1:
         (name, content), *_ = files.items()
         return content, media_type, name

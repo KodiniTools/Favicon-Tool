@@ -1,7 +1,7 @@
 export type Mode = 'image' | 'text'
 export type Fit = 'pad' | 'crop'
 /** Ausgabeformat von POST convert (favicon_core.OutputFormat) */
-export type OutputFormat = 'ico' | 'png' | 'webp'
+export type OutputFormat = 'ico' | 'png' | 'webp' | 'gif' | 'bmp' | 'svg'
 export type StatusTone = 'info' | 'success' | 'warning' | 'danger'
 
 /** Gestaltung wie auf dem Server (favicon_core.apply_style). */

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import { useI18n } from 'vue-i18n'
+  import type { MessageKey } from '@/i18n'
   import type { OutputFormat } from '@/lib/types'
   import { useFaviconStore } from '@/stores/favicon'
 
@@ -10,7 +12,21 @@
     { value: 'ico', label: 'ICO' },
     { value: 'png', label: 'PNG' },
     { value: 'webp', label: 'WebP' },
+    { value: 'gif', label: 'GIF' },
+    { value: 'bmp', label: 'BMP' },
+    { value: 'svg', label: 'SVG' },
   ]
+
+  // Hinweis je Format; Record erzwingt einen Eintrag für jedes Format
+  const HINTS: Record<OutputFormat, MessageKey | null> = {
+    ico: null,
+    png: 'formatHint',
+    webp: 'formatHint',
+    gif: 'formatHintGif',
+    bmp: 'formatHintBmp',
+    svg: 'formatHintSvg',
+  }
+  const hint = computed(() => HINTS[store.format])
 </script>
 
 <template>
@@ -22,7 +38,7 @@
         <span>{{ f.label }}</span>
       </label>
     </div>
-    <p v-if="store.format !== 'ico'" class="hint">{{ t('formatHint') }}</p>
+    <p v-if="hint" class="hint">{{ t(hint) }}</p>
   </fieldset>
 </template>
 

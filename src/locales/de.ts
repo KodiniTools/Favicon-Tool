@@ -4,7 +4,7 @@ export default {
   pageTitle: "Favicon Generator – favicon.ico & Favicon-Paket erstellen {'|'} KodiniTools",
   title: 'Favicon Konverter',
   intro:
-    'Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) oder aus Text/Emoji ein {file} oder ein komplettes Favicon-Paket.',
+    'Lade ein Bild hoch (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) oder gib Text/Emoji ein. Du erhältst ein Favicon als ICO, PNG, WebP, GIF, BMP oder SVG oder ein komplettes Favicon-Paket.',
   modeLabel: 'Quelle',
   modeImage: 'Bild',
   modeText: 'Text / Emoji',
@@ -23,7 +23,13 @@ export default {
   fitPad: 'Transparent auffüllen',
   fitCrop: 'Mittig zuschneiden',
   formatLegend: 'Ausgabeformat',
-  formatHint: 'Mehrere Größen als PNG oder WebP werden als ZIP geliefert.',
+  formatHint: 'Mehrere Größen werden als ZIP geliefert.',
+  formatHintGif:
+    'GIF kennt nur ganz oder gar nicht transparente Pixel; weiche Kanten werden hart. Mehrere Größen kommen als ZIP.',
+  formatHintBmp:
+    'BMP hat keine Transparenz: Transparente Flächen werden weiß bzw. in der Hintergrundfarbe gefüllt. Mehrere Größen kommen als ZIP.',
+  formatHintSvg:
+    'SVG ist skalierbar und immer eine Datei. Ein hochgeladenes SVG bleibt ohne Gestaltung als Vektorgrafik erhalten; sonst wird das Bild eingebettet.',
   sizesLegend: 'Größen (px)',
   styleLegend: 'Gestaltung',
   bgLabel: 'Hintergrundfarbe',

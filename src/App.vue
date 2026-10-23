@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { onMounted } from 'vue'
-  import { I18nT, useI18n } from 'vue-i18n'
+  import { useI18n } from 'vue-i18n'
   import FitOptions from '@/components/FitOptions.vue'
   import FormatOptions from '@/components/FormatOptions.vue'
   import IconPreview from '@/components/IconPreview.vue'
@@ -36,9 +36,7 @@
 <template>
   <div class="card">
     <h1>{{ t('title') }}</h1>
-    <I18nT keypath="intro" tag="p">
-      <template #file><code>favicon.ico</code></template>
-    </I18nT>
+    <p>{{ t('intro') }}</p>
 
     <form id="uploadForm" @submit.prevent="createIcons">
       <ModeSwitch />

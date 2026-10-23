@@ -64,16 +64,18 @@ SEO = {
     Lang.DE: {
         "title": "Favicon Generator – favicon.ico & Favicon-Paket erstellen | KodiniTools",
         "description": (
-            "Kostenloser Favicon Generator: Erstelle aus PNG, JPG, WebP, GIF oder BMP ein favicon.ico "
-            "oder ein komplettes Favicon-Paket mit Apple-Touch-Icon, Android-Icons und site.webmanifest."
+            "Kostenloser Favicon Generator: Erstelle aus PNG, JPG, WebP, GIF, BMP oder SVG ein Favicon als ICO, "
+            "PNG, WebP, GIF, BMP oder SVG oder ein komplettes Favicon-Paket mit Apple-Touch-Icon, Android-Icons "
+            "und site.webmanifest."
         ),
         "og_locale": "de_DE",
     },
     Lang.EN: {
         "title": "Favicon Generator – Create favicon.ico & favicon package | KodiniTools",
         "description": (
-            "Free favicon generator: turn a PNG, JPG, WebP, GIF or BMP into a favicon.ico or a complete "
-            "favicon package with Apple touch icon, Android icons and site.webmanifest."
+            "Free favicon generator: turn a PNG, JPG, WebP, GIF, BMP or SVG into a favicon as ICO, PNG, WebP, "
+            "GIF, BMP or SVG, or a complete favicon package with Apple touch icon, Android icons and "
+            "site.webmanifest."
         ),
         "og_locale": "en_US",
     },
@@ -194,14 +196,18 @@ async def convert(
     padding: str | None = Form(None),
     radius: str | None = Form(None),
     format: OutputFormat = Form(OutputFormat.ICO),
+    svg: str | None = Form(None),
     lang: Lang = Form(Lang.DE),
 ):
     data = await read_limited(file, lang)
     try:
         size_list = parse_sizes(sizes)
         style = parse_style(background, padding, radius)
+        svg_source = validate_svg(svg)
         img = await run_in_threadpool(load_image, data)
-        content, media_type, filename = await run_in_threadpool(build_icons, img, size_list, fit, style, format)
+        content, media_type, filename = await run_in_threadpool(
+            build_icons, img, size_list, fit, style, format, svg_source
+        )
     except ImageValidationError as e:
         raise to_http_error(e, lang) from None
 

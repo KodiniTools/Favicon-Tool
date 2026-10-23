@@ -225,7 +225,13 @@ export const useFaviconStore = defineStore('favicon', () => {
     return generate(
       'convert',
       format.value === 'ico' ? 'favicon.ico' : `favicon.${format.value}`,
-      { sizes: sorted.join(','), format: format.value, ...styleFields() },
+      {
+        sizes: sorted.join(','),
+        format: format.value,
+        // SVG-Ausgabe: Original-SVG mitschicken, damit es als Vektor erhalten bleiben kann
+        svg: format.value === 'svg' && hasSvg.value && svgText.value !== null ? svgText.value : '',
+        ...styleFields(),
+      },
       locale
     )
   }
