@@ -3,12 +3,13 @@
 # Deploy-Skript für den Favicon Generator (FastAPI).
 #
 # Holt den aktuellen Stand von origin/$DEPLOY_BRANCH, installiert die
-# Abhängigkeiten in ein virtuelles Environment, führt die Tests aus und
-# startet den systemd-Dienst neu, der uvicorn betreibt. NGINX leitet
+# Abhängigkeiten in ein virtuelles Environment, baut das Vue-Frontend
+# (npm, nach dist.new), führt die Tests gegen diesen Build aus, tauscht
+# dist erst danach aus und startet den systemd-Dienst neu, der uvicorn betreibt. NGINX leitet
 # https://kodinitools.com/<pfad>/ per proxy_pass an diesen Dienst weiter.
 #
 # Hinweis NGINX: Navigation, Footer und Cookie-Banner sind SSI-Includes
-# (<!--#include virtual="/partials/..." -->) in static/index.html. Sie
+# (<!--#include virtual="/partials/..." -->) in index.html. Sie
 # erscheinen nur, wenn die proxy_pass-Location `ssi on;` gesetzt hat.
 #
 # ------------------------------------------------------------------------
@@ -26,7 +27,7 @@
 # Beispiel:
 #   SERVICE_NAME=favicon HEALTH_URL=http://127.0.0.1:8010/ ./deploy.sh
 #
-# Voraussetzungen auf dem Server: git, python3 (mit venv), curl,
+# Voraussetzungen auf dem Server: git, python3 (mit venv), node + npm, curl,
 # systemd-Unit für uvicorn, z. B.:
 #   ExecStart=<repo>/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8005
 #   WorkingDirectory=<repo>
@@ -67,7 +68,7 @@ main() {
 
   # ---- Werkzeuge prüfen ---------------------------------------------------
   local tool
-  for tool in git "$PYTHON"; do
+  for tool in git "$PYTHON" node npm; do
     if ! command -v "$tool" >/dev/null 2>&1; then
       echo "!! Benötigtes Programm nicht gefunden: $tool" >&2
       exit 1
@@ -107,22 +108,42 @@ main() {
     "$VPY" -m pip install --quiet -r requirements.txt
   fi
 
-  # ---- 3. Tests (optional) ------------------------------------------------
+  # ---- 3. Frontend bauen (nach dist.new; das laufende dist bleibt unberührt) --
+  echo "==> Installiere npm-Pakete ..."
+  npm ci --no-audit --no-fund
+  if [[ "$RUN_TESTS" != "0" ]]; then
+    echo "==> Prüfe Frontend (Lint, Vitest) ..."
+    npm run lint
+    npm test
+  fi
+  echo "==> Baue Frontend ..."
+  npm run typecheck
+  npx vite build --outDir dist.new --emptyOutDir
+
+  # ---- 4. Tests (optional, gegen den neuen Build) -------------------------
   if [[ "$RUN_TESTS" != "0" ]]; then
     echo "==> Führe Tests aus (RUN_TESTS=0 zum Überspringen) ..."
-    "$VPY" -m pytest -q
+    FRONTEND_DIST="$SCRIPT_DIR/dist.new" "$VPY" -m pytest -q
   else
     echo "==> Tests übersprungen (RUN_TESTS=0)."
   fi
 
-  # ---- 4. Dienst neu starten ---------------------------------------------
-  # index.html wird beim Start eingelesen, deshalb ist ein Neustart nötig.
+  # ---- 5. Neuen Build aktivieren -----------------------------------------
+  rm -rf dist.old
+  if [[ -d dist ]]; then
+    mv dist dist.old
+  fi
+  mv dist.new dist
+
+  # ---- 6. Dienst neu starten ---------------------------------------------
+  # dist/index.html wird beim Start eingelesen, deshalb ist ein Neustart nötig.
   if [[ -n "$SERVICE" ]]; then
     echo "==> Starte Dienst $SERVICE neu ..."
     systemctl restart "$SERVICE"
   fi
+  rm -rf dist.old
 
-  # ---- 5. Erreichbarkeit prüfen ------------------------------------------
+  # ---- 7. Erreichbarkeit prüfen ------------------------------------------
   if [[ -n "$HEALTH_URL" ]]; then
     echo "==> Prüfe $HEALTH_URL ..."
     local attempt ok

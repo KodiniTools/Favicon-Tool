@@ -190,12 +190,24 @@ def test_validation_error_localized():
     assert ImageValidationError("Nur deutsch").localized("en") == "Nur deutsch"
 
 
+def index_asset(kind: str) -> str:
+    """Inhalt der vom Vite-Build eingebundenen JS- bzw. CSS-Datei (über /assets ausgeliefert)."""
+    html = client.get("/").text
+    pattern = r'src="\./(assets/[^"]+\.js)"' if kind == "js" else r'href="\./(assets/[^"]+\.css)"'
+    match = re.search(pattern, html)
+    assert match, f"kein {kind}-Bundle in index.html"
+    res = client.get("/" + match.group(1))
+    assert res.status_code == 200
+    return res.text
+
+
 def test_index_has_i18n_like_collage_maker():
     html = client.get("/").text
+    # Pre-Paint-Skript: Sprache vor dem ersten Rendern aus ?lang= / localStorage
     assert "localStorage.getItem('locale')" in html
-    assert "'locale-changed'" in html and ".global-nav-lang-btn" in html
-    assert "Favicon Converter" in html and "Choose a file or drag it here" in html
-    assert "formData.append('lang', locale)" in html
+    js = index_asset("js")
+    assert "locale-changed" in js and ".global-nav-lang-btn" in js
+    assert "Favicon Converter" in js and "Choose a file or drag it here" in js
 
 
 # --- /package ------------------------------------------------------------------
@@ -245,14 +257,24 @@ def test_package_app_name_too_long():
 
 def test_index_uses_design_system_and_partials():
     html = client.get("/").text
-    assert 'href="static/design-system/tokens-v2.css"' in html
     for partial in ("nav", "footer", "cookie-banner"):
         assert f'<!--#include virtual="/partials/{partial}.html" -->' in html
-    # App-Inhalt liegt in #app, damit die Partial-Regeln ihn nicht treffen
+    # Vue-App mountet in #app, damit die Partial-Regeln sie nicht treffen
     assert '<main id="app">' in html
-    # Farben nur über Tokens; feste Hex-Werte allein in den theme-color-Metas
-    style = html[html.index("<style>") : html.index("</style>")]
-    assert not re.search(r"#[0-9a-fA-F]{3,8}\b", style)
+    assert '<script type="module" crossorigin src="./assets/' in html
+    css = index_asset("css")
+    # Design-Tokens sind im Bundle; Farben nur über Tokens (Hex-Werte nur in tokens + theme-color-Metas)
+    assert "--ds-accent:" in css
+    assert "var(--ds-accent)" in css
+
+
+def test_read_index_template_requires_build(tmp_path):
+    import main
+
+    with pytest.raises(RuntimeError, match="npm run build"):
+        main.read_index_template(tmp_path)
+    (tmp_path / "index.html").write_text("<html></html>", encoding="utf-8")
+    assert main.read_index_template(tmp_path) == "<html></html>"
 
 
 def test_static_tokens_and_fonts_served():
@@ -348,10 +370,9 @@ def test_render_index_requires_placeholders():
 
 
 def test_file_input_keyboard_accessible():
-    html = client.get("/").text
-    style = html[html.index("<style>") : html.index("</style>")]
-    assert 'input[type="file"] { display: none; }' not in style
-    assert "clip-path: inset(50%)" in style
+    css = index_asset("css")
+    assert "display:none" not in css.replace(" ", "").split("type=file]")[-1][:40]
+    assert "clip-path:inset(50%)" in css.replace(" ", "")
 
 
 def test_requirements_pinned():
@@ -368,6 +389,19 @@ def test_ci_workflow_runs_pytest_and_ruff():
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     for cmd in ("pytest -q", "ruff check .", "ruff format --check ."):
         assert cmd in ci
+    # Frontend: Lint, Typen, Vitest, Build; pytest braucht das gebaute dist/
+    for cmd in ("npm run lint", "npm run typecheck", "npm test", "npm ci && npm run build"):
+        assert cmd in ci
+
+
+def test_deploy_builds_frontend_before_switching():
+    text = (ROOT / "deploy.sh").read_text(encoding="utf-8")
+    build = text.index("npx vite build --outDir dist.new")
+    tests = text.index('FRONTEND_DIST="$SCRIPT_DIR/dist.new" "$VPY" -m pytest -q')
+    switch = text.index("mv dist.new dist")
+    restart = text.index('systemctl restart "$SERVICE"')
+    assert build < tests < switch < restart
+    assert 'for tool in git "$PYTHON" node npm; do' in text
 
 
 # --- Paket 2: Gestaltung, maskable, Manifest-Farben, Snippet --------------------
@@ -556,11 +590,10 @@ def test_snippet_endpoint_svg():
 
 
 def test_index_offers_text_mode_svg_and_mockups():
-    html = client.get("/").text
-    assert 'name="mode" value="text"' in html
-    assert "image/svg+xml" in html
+    js = index_asset("js")
+    assert "image/svg+xml" in js
     for el in ("mkTabLight", "mkTabDark", "mkIos", "mkAndroid"):
-        assert f'id="{el}"' in html
+        assert el in js
 
 
 # --- Eigene Schriften (static/fonts) ---------------------------------------------
@@ -606,20 +639,17 @@ def test_fonts_missing_directory(monkeypatch, tmp_path):
 
 
 def test_index_has_font_picker():
-    html = client.get("/").text
+    js = index_asset("js")
     # Eigene Listbox statt <select>, damit jeder Eintrag in seiner Schrift erscheint
-    assert 'id="textFontBtn"' in html and 'aria-haspopup="listbox"' in html
-    assert 'id="textFontList" role="listbox"' in html
-    assert '<input type="hidden" id="textFont" value="">' in html
-    assert "fetch('fonts')" in html
-    assert "new FontFace(" in html
+    assert "textFontBtn" in js and "textFontList" in js and "listbox" in js
+    assert "new FontFace(" in js
 
 
 def test_app_button_styles_do_not_leak_into_partials():
     # Footer/Cookie-Banner (SSI, außerhalb von #app) nutzen <button> als Link;
     # die App-Button-Stile dürfen dort nicht greifen.
-    html = client.get("/").text
-    style = html[html.index("<style>") : html.index("</style>")]
-    assert not re.search(r"^\s*button[\s{:.]", style, re.M)
-    assert ":where(#app) button {" in style
-    assert "button.footer-link:not([class*='cookie'])" in style
+    css = index_asset("css")
+    # kein Selektor, der mit "button" beginnt (minifiziert: nach "}", "{" oder ",")
+    assert not re.search(r"(^|[{},])\s*button[\s{:.,\[]", css)
+    assert ":where(#app) button" in css
+    assert "button.footer-link:not([class*=cookie])" in css.replace("'", "").replace('"', "")

@@ -28,10 +28,24 @@ from favicon_core import (
 
 app = FastAPI(title="Favicon Generator")
 
-STATIC_DIR = Path(__file__).parent / "static"
-HTML_CONTENT = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+ROOT_DIR = Path(__file__).parent
+STATIC_DIR = ROOT_DIR / "static"
+# Gebautes Vue-Frontend (npm run build); deploy.sh testet einen neuen Build über FRONTEND_DIST, bevor er live geht
+DIST_DIR = Path(os.environ.get("FRONTEND_DIST") or ROOT_DIR / "dist")
 
-# Design-Tokens und Schriften (relativ aus index.html referenziert, damit der Subpath passt)
+
+def read_index_template(dist_dir: Path) -> str:
+    index = dist_dir / "index.html"
+    if not index.is_file():
+        raise RuntimeError(f"Frontend fehlt ({index}): zuerst `npm ci && npm run build` ausführen.")
+    return index.read_text(encoding="utf-8")
+
+
+HTML_CONTENT = read_index_template(DIST_DIR)
+
+# JS/CSS des Frontends (Dateinamen mit Hash) sowie Design-Tokens und Schriften; alle Verweise sind
+# relativ, damit der Subpath (/favicon-tool/) passt
+app.mount("/assets", StaticFiles(directory=DIST_DIR / "assets"), name="assets")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
