@@ -275,7 +275,22 @@ def test_deploy_script_is_executable_and_valid_bash():
     assert subprocess.run(["bash", "-n", str(script)]).returncode == 0
     text = script.read_text(encoding="utf-8")
     assert 'HEALTH_URL-http://127.0.0.1:8005/}"' in text
-    assert '"${HEALTH_URL%/}/health"' in text
+    assert 'curl -fsS -o /dev/null "$url/health"' in text
+    # curl-Fehler während des Neustarts unterdrückt, beim letzten Versuch sichtbar
+    assert 'check_health "$HEALTH_URL" 2>/dev/null' in text
+
+
+def test_deploy_check_health_function():
+    """check_health aus deploy.sh gegen einen nicht erreichbaren Port: Fehlschlag ohne Abbruch des Skripts."""
+    script = ROOT / "deploy.sh"
+    body = script.read_text(encoding="utf-8").replace('main "$@"', "")
+    res = subprocess.run(
+        ["bash", "-c", body + "\ncheck_health http://127.0.0.1:9/ 2>/dev/null && echo up || echo down"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert res.stdout.strip() == "down"
 
 
 # --- Paket 1: /health, SEO, Barrierefreiheit, Projekt-Setup ---------------------
