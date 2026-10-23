@@ -605,7 +605,11 @@ def test_fonts_missing_directory(monkeypatch, tmp_path):
     assert client.get("/fonts").json() == []
 
 
-def test_index_has_font_select():
+def test_index_has_font_picker():
     html = client.get("/").text
-    assert '<select id="textFont">' in html
+    # Eigene Listbox statt <select>, damit jeder Eintrag in seiner Schrift erscheint
+    assert 'id="textFontBtn"' in html and 'aria-haspopup="listbox"' in html
+    assert 'id="textFontList" role="listbox"' in html
+    assert '<input type="hidden" id="textFont" value="">' in html
     assert "fetch('fonts')" in html
+    assert "new FontFace(" in html

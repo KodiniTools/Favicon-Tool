@@ -200,6 +200,64 @@
             font-size: var(--ds-text-sm);
         }
         select:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+        /* Schriftauswahl: eigene Liste, damit jede Schrift in sich selbst angezeigt wird */
+        .font-picker { position: relative; min-width: 0; }
+        .font-picker-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--ds-space-2);
+            width: 100%;
+            padding: var(--ds-space-2) var(--ds-space-3);
+            border-radius: var(--ds-radius-sm);
+            border: var(--ds-border-width) solid var(--ds-border-strong);
+            background: var(--ds-surface-1);
+            color: var(--ds-text);
+            font-size: var(--ds-text-md);
+            text-align: left;
+            cursor: pointer;
+        }
+        /* Globale Button-Stile (Akzentfläche, Hover) hier nicht übernehmen */
+        .font-picker-btn { min-height: 0; font-weight: var(--ds-weight-regular); }
+        .font-picker-btn:hover, .font-picker-btn[aria-expanded="true"] { background: var(--ds-surface-1); border-color: var(--ds-accent); }
+        .font-picker-btn::after {
+            content: '';
+            flex: none;
+            border: 0.3em solid transparent;
+            border-top-color: currentColor;
+            border-bottom: 0;
+        }
+        .font-picker-btn:focus-visible, .font-picker-list:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+        .font-picker-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .font-picker-list {
+            position: absolute;
+            z-index: 10;
+            top: calc(100% + var(--ds-space-1));
+            left: 0;
+            width: max(100%, 16rem);
+            max-height: 20rem;
+            overflow-y: auto;
+            margin: 0;
+            padding: var(--ds-space-1);
+            list-style: none;
+            border-radius: var(--ds-radius-sm);
+            border: var(--ds-border-width) solid var(--ds-border-strong);
+            background: var(--ds-surface-1);
+            box-shadow: var(--ds-shadow-overlay);
+        }
+        .font-picker-list[hidden] { display: none; }
+        .font-picker-list li {
+            padding: var(--ds-space-2) var(--ds-space-3);
+            border-radius: var(--ds-radius-sm);
+            font-size: var(--ds-text-lg);
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+        .font-picker-list li.active { background: var(--ds-surface-2); }
+        .font-picker-list li[aria-selected="true"] { background: var(--ds-accent-soft); }
         /* Gestaltung / Paket-Optionen: Zeilen aus Beschriftung, Regler und Wert */
         .field {
             display: grid;
@@ -331,10 +389,16 @@
                     <span></span>
                 </div>
                 <div class="field">
-                    <label for="textFont" data-i18n="fontLabel">Schrift</label>
-                    <select id="textFont">
-                        <option value="" data-i18n="fontSystem">Systemschrift (fett)</option>
-                    </select>
+                    <label for="textFontBtn" id="textFontLabel" data-i18n="fontLabel">Schrift</label>
+                    <div class="font-picker">
+                        <input type="hidden" id="textFont" value="">
+                        <button type="button" class="font-picker-btn" id="textFontBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="textFontList" aria-labelledby="textFontLabel textFontValue">
+                            <span class="font-picker-value" id="textFontValue" data-i18n="fontSystem">Systemschrift (fett)</span>
+                        </button>
+                        <ul class="font-picker-list" id="textFontList" role="listbox" tabindex="-1" aria-labelledby="textFontLabel" hidden>
+                            <li role="option" id="textFontOpt-sys" data-value="" aria-selected="true" data-i18n="fontSystem">Systemschrift (fett)</li>
+                        </ul>
+                    </div>
                     <span></span>
                 </div>
                 <div class="field">
@@ -637,6 +701,10 @@
         const textFont = document.getElementById('textFont');
         // Geladene Schriften aus static/fonts: value (Index) -> CSS-Familienname
         const loadedFonts = new Map();
+        const textFontBtn = document.getElementById('textFontBtn');
+        const textFontValue = document.getElementById('textFontValue');
+        const textFontList = document.getElementById('textFontList');
+        const FONT_FALLBACK = 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
         const mockups = document.getElementById('mockups');
 
         // Rastergröße für SVG und Text (Server arbeitet mit max. 512 px, Reserve für Schärfe)
@@ -745,11 +813,10 @@
             const text = iconText.value.trim();
             if (!text) return null;
             const ctx = canvas.getContext('2d');
-            const fallback = 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
             const custom = loadedFonts.get(textFont.value);
             // Eigene Schrift: Schnitt steckt in der Datei, daher normales Gewicht (kein künstliches Fett)
             const weight = custom ? 400 : 700;
-            const family = custom ? `"${custom}", ${fallback}` : fallback;
+            const family = custom ? `"${custom}", ${FONT_FALLBACK}` : FONT_FALLBACK;
             ctx.fillStyle = textColor.value;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
@@ -1020,7 +1087,48 @@
         [iconText, textColor].forEach(el => el.addEventListener('input', drawPreview));
 
         // --- Schriften aus static/fonts (GET fonts); neue Dateien erscheinen nach dem Deploy automatisch ---
+        // Jede Schrift wird in der Liste, im Auswahlfeld und im Eingabefeld in sich selbst dargestellt.
         let fontList = [];
+        const fontLoads = new Map();
+
+        // Lädt eine Schrift genau einmal; liefert den Familiennamen oder null bei Fehler
+        function ensureFont(value) {
+            const font = fontList[Number(value)];
+            if (value === '' || !font) return Promise.resolve(null);
+            if (!fontLoads.has(value)) {
+                const family = 'favicon-font-' + value;
+                fontLoads.set(value, (async () => {
+                    try {
+                        const face = new FontFace(family, `url("${font.url}") format("${font.format}")`);
+                        document.fonts.add(await face.load());
+                        loadedFonts.set(value, family);
+                        return family;
+                    } catch (err) {
+                        console.warn('Schrift konnte nicht geladen werden:', font.url, err);
+                        return null;
+                    }
+                })());
+            }
+            return fontLoads.get(value);
+        }
+
+        function fontCss(value) {
+            return value === '' ? FONT_FALLBACK : `"favicon-font-${value}", ${FONT_FALLBACK}`;
+        }
+
+        function fontOptions() {
+            return [...textFontList.querySelectorAll('[role="option"]')];
+        }
+
+        // Schriften erst laden, wenn ihr Eintrag in der geöffneten Liste sichtbar wird
+        const fontObserver = 'IntersectionObserver' in window
+            ? new IntersectionObserver(entries => entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                fontObserver.unobserve(entry.target);
+                ensureFont(entry.target.dataset.value);
+            }), { root: textFontList, rootMargin: '200px 0px' })
+            : null;
+
         async function loadFontList() {
             try {
                 const res = await fetch('fonts');
@@ -1031,33 +1139,132 @@
                 fontList = [];
             }
             fontList.forEach((font, i) => {
-                const option = document.createElement('option');
-                option.value = String(i);
-                option.textContent = font.label;
-                textFont.append(option);
+                const li = document.createElement('li');
+                li.id = 'textFontOpt-' + i;
+                li.setAttribute('role', 'option');
+                li.setAttribute('aria-selected', 'false');
+                li.dataset.value = String(i);
+                li.textContent = font.label;
+                li.style.fontFamily = fontCss(String(i));
+                textFontList.append(li);
+                if (fontObserver) fontObserver.observe(li);
             });
         }
 
-        async function onFontChange() {
-            const value = textFont.value;
-            const font = fontList[Number(value)];
-            if (value === '' || loadedFonts.has(value) || !font) {
-                drawPreview();
-                return;
+        // Zustand setzen und überall in der gewählten Schrift anzeigen
+        function setFontValue(value) {
+            textFont.value = value;
+            const opt = fontOptions().find(o => o.dataset.value === value);
+            fontOptions().forEach(o => o.setAttribute('aria-selected', String(o === opt)));
+            if (value === '') {
+                textFontValue.setAttribute('data-i18n', 'fontSystem');
+                textFontValue.textContent = t('fontSystem');
+            } else {
+                textFontValue.removeAttribute('data-i18n');
+                textFontValue.textContent = opt ? opt.textContent : '';
             }
-            const family = 'favicon-font-' + value;
-            try {
-                const face = new FontFace(family, `url("${font.url}") format("${font.format}")`);
-                document.fonts.add(await face.load());
-                loadedFonts.set(value, family);
-            } catch (err) {
-                console.warn('Schrift konnte nicht geladen werden:', font.url, err);
-                setStatusKey('fontLoadFailed', 'var(--ds-warning)');
-                textFont.value = '';
-            }
-            if (textFont.value === value || textFont.value === '') drawPreview();
+            const weight = value === '' ? '700' : '400';
+            [textFontValue, iconText].forEach(el => {
+                el.style.fontFamily = fontCss(value);
+                el.style.fontWeight = weight;
+            });
         }
-        textFont.addEventListener('change', onFontChange);
+
+        async function selectFont(value) {
+            setFontValue(value);
+            const family = await ensureFont(value);
+            if (textFont.value !== value) return; // inzwischen andere Schrift gewählt
+            if (value !== '' && !family) {
+                setStatusKey('fontLoadFailed', 'var(--ds-warning)');
+                setFontValue('');
+            }
+            drawPreview();
+        }
+
+        // --- Listbox-Bedienung (Maus, Tastatur, Screenreader) ---
+        let activeIndex = 0;
+        function setActive(index) {
+            const opts = fontOptions();
+            if (!opts.length) return;
+            activeIndex = Math.max(0, Math.min(opts.length - 1, index));
+            opts.forEach((o, i) => o.classList.toggle('active', i === activeIndex));
+            textFontList.setAttribute('aria-activedescendant', opts[activeIndex].id);
+            opts[activeIndex].scrollIntoView({ block: 'nearest' });
+        }
+        function openFontList() {
+            textFontList.hidden = false;
+            textFontBtn.setAttribute('aria-expanded', 'true');
+            setActive(Math.max(0, fontOptions().findIndex(o => o.dataset.value === textFont.value)));
+            textFontList.focus();
+        }
+        function closeFontList(returnFocus = true) {
+            if (textFontList.hidden) return;
+            textFontList.hidden = true;
+            textFontBtn.setAttribute('aria-expanded', 'false');
+            if (returnFocus) textFontBtn.focus();
+        }
+        function chooseActive() {
+            const opt = fontOptions()[activeIndex];
+            closeFontList();
+            if (opt && opt.dataset.value !== textFont.value) selectFont(opt.dataset.value);
+        }
+
+        textFontBtn.addEventListener('click', () => (textFontList.hidden ? openFontList() : closeFontList()));
+        textFontBtn.addEventListener('keydown', e => {
+            if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+                e.preventDefault();
+                openFontList();
+            }
+        });
+        textFontList.addEventListener('keydown', e => {
+            const last = fontOptions().length - 1;
+            switch (e.key) {
+                case 'ArrowDown': setActive(activeIndex + 1); break;
+                case 'ArrowUp': setActive(activeIndex - 1); break;
+                case 'Home': setActive(0); break;
+                case 'End': setActive(last); break;
+                case 'PageDown': setActive(activeIndex + 8); break;
+                case 'PageUp': setActive(activeIndex - 8); break;
+                case 'Enter': case ' ': chooseActive(); break;
+                case 'Escape': closeFontList(); break;
+                case 'Tab': closeFontList(false); return;
+                default: {
+                    // Tippen springt zum nächsten Eintrag mit diesem Anfangsbuchstaben
+                    if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+                    const opts = fontOptions();
+                    const key = e.key.toLowerCase();
+                    for (let step = 1; step <= opts.length; step++) {
+                        const i = (activeIndex + step) % opts.length;
+                        if (opts[i].textContent.trim().toLowerCase().startsWith(key)) { setActive(i); break; }
+                    }
+                }
+            }
+            e.preventDefault();
+        });
+        textFontList.addEventListener('click', e => {
+            const opt = e.target.closest('[role="option"]');
+            if (!opt) return;
+            setActive(fontOptions().indexOf(opt));
+            chooseActive();
+        });
+        textFontList.addEventListener('mousemove', e => {
+            const opt = e.target.closest('[role="option"]');
+            if (opt) {
+                const i = fontOptions().indexOf(opt);
+                if (i !== activeIndex) {
+                    activeIndex = i;
+                    fontOptions().forEach((o, j) => o.classList.toggle('active', j === i));
+                    textFontList.setAttribute('aria-activedescendant', opt.id);
+                }
+            }
+        });
+        document.addEventListener('pointerdown', e => {
+            if (!textFontList.hidden && !e.target.closest('.font-picker')) closeFontList(false);
+        });
+        const systemOption = document.getElementById('textFontOpt-sys');
+        systemOption.style.fontFamily = FONT_FALLBACK;
+        systemOption.style.fontWeight = '700';
+        setFontValue('');
         appName.addEventListener('input', drawPreview);
 
         ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
