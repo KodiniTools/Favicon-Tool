@@ -344,7 +344,9 @@ def test_requirements_pinned():
         for line in (ROOT / name).read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith(("#", "-r")):
-                assert re.fullmatch(r"[A-Za-z0-9_.\-]+==[0-9][0-9A-Za-z.]*", line), line
+                assert re.fullmatch(
+                    r"[A-Za-z0-9_.\-]+==[0-9][0-9A-Za-z.]*(; python_version [<>]=? \"[0-9.]+\")?", line
+                ), line
 
 
 def test_ci_workflow_runs_pytest_and_ruff():
