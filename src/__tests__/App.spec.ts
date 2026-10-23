@@ -82,6 +82,32 @@ describe('App', () => {
     wrapper.unmount()
   })
 
+  it('Größen sind bei ICO und SVG gesperrt; das Paket nennt seine festen Formate', async () => {
+    const { wrapper } = await mountApp()
+    const sizeSet = () => wrapper.find('#sizeOptions').element.closest('fieldset')!
+    expect(sizeSet().disabled).toBe(true)
+    const checked = wrapper
+      .findAll<HTMLInputElement>('#sizeOptions input')
+      .filter((i) => i.element.checked)
+      .map((i) => i.element.value)
+    expect(checked).toEqual(['16', '32', '48', '64'])
+    expect(wrapper.find('#sizesHint').text()).toContain('Standardgrößen 16, 32, 48 und 64')
+    await wrapper.find('input[name="format"][value="png"]').setValue(true)
+    expect(sizeSet().disabled).toBe(false)
+    expect(wrapper.find('#sizesHint').exists()).toBe(false)
+    await wrapper.find('input[name="format"][value="svg"]').setValue(true)
+    expect(sizeSet().disabled).toBe(true)
+    // Format und Größen liegen im Bereich der Einzeldatei, nicht beim Paket
+    const single = wrapper.find('section[aria-labelledby="singleHeading"]')
+    expect(single.find('#formatOptions').exists()).toBe(true)
+    expect(single.find('#btnIco').exists()).toBe(true)
+    const pkg = wrapper.find('section[aria-labelledby="packageHeading"]')
+    expect(pkg.find('#formatOptions').exists()).toBe(false)
+    expect(pkg.find('#packageContents').text()).toContain('gilt nur für die einzelne Datei')
+    expect(pkg.find('#btnPkg').text()).toBe('Paket herunterladen (ZIP)')
+    wrapper.unmount()
+  })
+
   it('Textmodus blendet Upload aus und Textfelder ein', async () => {
     const { wrapper } = await mountApp()
     expect(wrapper.find('#textPanel').isVisible()).toBe(false)
