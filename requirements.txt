@@ -2,5 +2,5 @@
 # Updates bewusst per PR (Dependabot), damit CI vor dem Deploy prüft.
 fastapi==0.161.1
 python-multipart==0.0.32
-pillow==12.3.0
+pillow==13.0.0
 uvicorn==0.54.0
