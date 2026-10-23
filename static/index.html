@@ -107,13 +107,17 @@
             color: var(--ds-text) !important;
         }
         body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:not([class*='cookie']):not([id*='cookie']),
-        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:not([class*='cookie']):not([id*='cookie']) * {
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:not([class*='cookie']):not([id*='cookie']) *,
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) button.footer-link:not([class*='cookie']):not([id*='cookie']) {
             color: var(--ds-link) !important;
         }
         body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:hover:not([class*='cookie']):not([id*='cookie']),
-        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:hover:not([class*='cookie']):not([id*='cookie']) * {
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) a:hover:not([class*='cookie']):not([id*='cookie']) *,
+        body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not([id*='cookie']) button.footer-link:hover:not([class*='cookie']):not([id*='cookie']) {
             color: var(--ds-accent) !important;
         }
+        /* Footer-Link als <button> (Cookie-Einstellungen) wie die übrigen Links setzen */
+        body > :not(#app) button.footer-link { line-height: inherit; font-weight: inherit; letter-spacing: inherit; }
 
         /* === App === */
         #app {
@@ -217,7 +221,7 @@
             text-align: left;
             cursor: pointer;
         }
-        /* Globale Button-Stile (Akzentfläche, Hover) hier nicht übernehmen */
+        /* Globale App-Button-Stile (Akzentfläche, Hover) hier nicht übernehmen */
         .font-picker-btn { min-height: 0; font-weight: var(--ds-weight-regular); }
         .font-picker-btn:hover, .font-picker-btn[aria-expanded="true"] { background: var(--ds-surface-1); border-color: var(--ds-accent); }
         .font-picker-btn::after {
@@ -333,7 +337,7 @@
             border-radius: 2px;
         }
         .buttons { display: flex; gap: var(--ds-space-3); margin-top: var(--ds-space-6); }
-        button {
+        :where(#app) button {
             flex: 1;
             min-height: var(--ds-control-lg);
             background: var(--ds-accent);
@@ -347,10 +351,10 @@
             cursor: pointer;
             transition: background-color var(--ds-duration) var(--ds-ease), border-color var(--ds-duration) var(--ds-ease);
         }
-        button:hover { background: var(--ds-accent-hover); }
-        button.secondary { background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-border-strong); }
-        button.secondary:hover { background: var(--ds-surface-3); border-color: var(--ds-accent); }
-        button:disabled { opacity: 0.6; cursor: wait; }
+        :where(#app) button:hover { background: var(--ds-accent-hover); }
+        :where(#app) button.secondary { background: var(--ds-surface-2); color: var(--ds-text); border-color: var(--ds-border-strong); }
+        :where(#app) button.secondary:hover { background: var(--ds-surface-3); border-color: var(--ds-accent); }
+        :where(#app) button:disabled { opacity: 0.6; cursor: wait; }
         #status { margin-top: var(--ds-space-4); font-size: var(--ds-text-md); font-weight: var(--ds-weight-medium); min-height: 1.5em; }
         @media (max-width: 480px) {
             #app { padding: var(--ds-space-6) var(--ds-space-4); }

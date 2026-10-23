@@ -613,3 +613,13 @@ def test_index_has_font_picker():
     assert '<input type="hidden" id="textFont" value="">' in html
     assert "fetch('fonts')" in html
     assert "new FontFace(" in html
+
+
+def test_app_button_styles_do_not_leak_into_partials():
+    # Footer/Cookie-Banner (SSI, außerhalb von #app) nutzen <button> als Link;
+    # die App-Button-Stile dürfen dort nicht greifen.
+    html = client.get("/").text
+    style = html[html.index("<style>") : html.index("</style>")]
+    assert not re.search(r"^\s*button[\s{:.]", style, re.M)
+    assert ":where(#app) button {" in style
+    assert "button.footer-link:not([class*='cookie'])" in style
