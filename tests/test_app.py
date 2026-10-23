@@ -344,7 +344,9 @@ def test_requirements_pinned():
         for line in (ROOT / name).read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith(("#", "-r")):
-                assert re.fullmatch(r"[A-Za-z0-9_.\-]+==[0-9][0-9A-Za-z.]*", line), line
+                assert re.fullmatch(
+                    r"[A-Za-z0-9_.\-]+==[0-9][0-9A-Za-z.]*(; python_version [<>]=? \"[0-9.]+\")?", line
+                ), line
 
 
 def test_ci_workflow_runs_pytest_and_ruff():
@@ -459,3 +461,88 @@ def test_snippet_endpoint():
     res = client.get("/snippet", params={"theme_color": "#123456"})
     assert res.text.endswith('<meta name="theme-color" content="#123456">\n')
     assert client.get("/snippet", params={"theme_color": "x"}).status_code == 400
+
+
+# --- Paket 3: SVG, Text/Emoji, Vorschau ------------------------------------------
+
+SVG_OK = (
+    '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 10 10">'
+    '<defs><linearGradient id="g"><stop offset="0" stop-color="red"/></linearGradient></defs>'
+    '<rect width="10" height="10" fill="url(#g)"/><use xlink:href="#g"/>'
+    "<style>rect { fill: url(#g); }</style></svg>"
+)
+
+
+def test_validate_svg_accepts_plain_svg():
+    assert favicon_core.validate_svg(None) is None
+    assert favicon_core.validate_svg("  ") is None
+    assert favicon_core.validate_svg(SVG_OK) == SVG_OK
+    assert favicon_core.validate_svg('<svg viewBox="0 0 1 1"/>') is not None  # ohne Namespace
+
+
+@pytest.mark.parametrize(
+    "svg",
+    [
+        '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://example.com/a.png"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+        '<use xlink:href="https://example.com/x.svg#a"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><a href="javascript:alert(1)"><rect/></a></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill: url(https://e.com/x)"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg"><style>@import url(https://e.com/x.css);</style></svg>',
+        '<!DOCTYPE svg [<!ENTITY x "y">]><svg xmlns="http://www.w3.org/2000/svg">&x;</svg>',
+        "<html><body/></html>",
+        "<svg",
+    ],
+)
+def test_validate_svg_rejects_unsafe_or_invalid(svg):
+    with pytest.raises(ImageValidationError):
+        favicon_core.validate_svg(svg)
+
+
+def test_validate_svg_too_large(monkeypatch):
+    monkeypatch.setattr(favicon_core, "SVG_MAX_BYTES", 10)
+    with pytest.raises(ImageValidationError):
+        favicon_core.validate_svg(SVG_OK)
+
+
+def test_package_with_svg():
+    res = post("/package", image_bytes((64, 32)), svg=SVG_OK)
+    assert res.status_code == 200
+    zf = zipfile.ZipFile(io.BytesIO(res.content))
+    assert zf.read("favicon.svg").decode() == SVG_OK
+    snippet = zf.read("favicon-snippet.html").decode()
+    assert '<link rel="icon" type="image/svg+xml" href="/favicon.svg">' in snippet
+    # Chrome würde ein ICO mit sizes="any" dem SVG vorziehen
+    assert 'href="/favicon.ico" sizes="32x32"' in snippet and 'sizes="any"' not in snippet
+
+
+def test_package_without_svg_unchanged():
+    zf = zipfile.ZipFile(io.BytesIO(post("/package", image_bytes(), svg="").content))
+    assert "favicon.svg" not in zf.namelist()
+    assert zf.read("favicon-snippet.html").decode() == favicon_core.SNIPPET_HTML
+
+
+def test_package_rejects_unsafe_svg_localized():
+    bad = '<svg xmlns="http://www.w3.org/2000/svg" onload="x()"/>'
+    res = post("/package", image_bytes(), svg=bad, lang="en")
+    assert res.status_code == 400
+    assert res.json()["detail"].startswith("Error: SVG contains disallowed content")
+
+
+def test_snippet_endpoint_svg():
+    text = client.get("/snippet", params={"svg": "true", "theme_color": "#000000"}).text
+    lines = text.splitlines()
+    assert lines[0] == '<link rel="icon" href="/favicon.ico" sizes="32x32">'
+    assert lines[1] == '<link rel="icon" type="image/svg+xml" href="/favicon.svg">'
+    assert lines[-1] == '<meta name="theme-color" content="#000000">'
+
+
+def test_index_offers_text_mode_svg_and_mockups():
+    html = client.get("/").text
+    assert 'name="mode" value="text"' in html
+    assert "image/svg+xml" in html
+    for el in ("mkTabLight", "mkTabDark", "mkIos", "mkAndroid"):
+        assert f'id="{el}"' in html

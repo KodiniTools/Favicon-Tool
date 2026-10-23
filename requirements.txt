@@ -2,5 +2,7 @@
 # Updates bewusst per PR (Dependabot), damit CI vor dem Deploy prüft.
 fastapi==0.161.1
 python-multipart==0.0.32
-pillow==13.0.0
+# Pillow 13 setzt Python >= 3.11 voraus; ältere Server (3.10) erhalten 12.3.0
+pillow==13.0.0; python_version >= "3.11"
+pillow==12.3.0; python_version < "3.11"
 uvicorn==0.54.0

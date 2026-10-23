@@ -3,6 +3,7 @@
 import io
 import json
 import re
+import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass
 from enum import Enum
@@ -24,6 +25,10 @@ DEFAULT_MANIFEST_COLOR = "#ffffff"
 # Ein Quadrat passt hinein, wenn seine Kante 0,8 / sqrt(2) der Icon-Kante beträgt.
 MASKABLE_CONTENT_RATIO = 0.8 / 2**0.5
 _HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
+SVG_MAX_BYTES = 512 * 1024
+SVG_NS = "http://www.w3.org/2000/svg"
+# Elemente, die Skripte, fremde Dokumente oder externe Inhalte einbinden können
+_SVG_FORBIDDEN_TAGS = frozenset({"script", "foreignobject", "iframe", "embed", "object", "audio", "video", "image"})
 
 
 class FitMode(str, Enum):
@@ -209,6 +214,45 @@ def _png(master: Image.Image, size: int, background: tuple[int, int, int] | None
     return buf.getvalue()
 
 
+def validate_svg(raw: str | None) -> str | None:
+    """Prüft ein SVG für favicon.svg streng (kein Skript, keine externen Verweise). Leer -> None.
+
+    Das Rastern übernimmt der Browser; der Server übernimmt die Datei nur unverändert ins Paket.
+    """
+    if raw is None or not raw.strip():
+        return None
+    if len(raw.encode("utf-8")) > SVG_MAX_BYTES:
+        raise ImageValidationError("SVG zu groß (max. 512 KB)", "SVG too large (max. 512 KB)")
+    invalid = ImageValidationError(
+        "SVG enthält nicht erlaubte Inhalte (Skripte, externe Verweise oder DTD)",
+        "SVG contains disallowed content (scripts, external references or DTD)",
+    )
+    # DTDs/Entitäten gar nicht erst parsen (XXE, Entity-Expansion)
+    if re.search(r"<!(DOCTYPE|ENTITY)", raw, re.IGNORECASE):
+        raise invalid
+    try:
+        root = ET.fromstring(raw)
+    except ET.ParseError:
+        raise ImageValidationError("SVG ist kein gültiges XML", "SVG is not valid XML") from None
+    if root.tag not in (f"{{{SVG_NS}}}svg", "svg"):
+        raise ImageValidationError("Datei ist kein SVG", "File is not an SVG")
+    for el in root.iter():
+        tag = el.tag.rsplit("}", 1)[-1].lower() if isinstance(el.tag, str) else ""
+        if tag in _SVG_FORBIDDEN_TAGS:
+            raise invalid
+        if tag == "style" and re.search(r"@import|url\(\s*['\"]?(?!#)", el.text or "", re.IGNORECASE):
+            raise invalid
+        for name, value in el.attrib.items():
+            local = name.rsplit("}", 1)[-1].lower()
+            if local.startswith("on"):
+                raise invalid
+            if local == "href" and not value.strip().startswith("#"):
+                raise invalid
+            if re.search(r"url\(\s*['\"]?(?!#)|javascript:", value, re.IGNORECASE):
+                raise invalid
+    return raw
+
+
 def _maskable(square: Image.Image, size: int, background: str) -> bytes:
     """Icon mit voller, deckender Fläche; Motiv innerhalb der Safe Zone (für purpose "maskable")."""
     inner = round(size * MASKABLE_CONTENT_RATIO)
@@ -229,11 +273,20 @@ SNIPPET_HTML = """<link rel="icon" href="/favicon.ico" sizes="any">
 """
 
 
-def build_snippet(theme_color: str | None = None) -> str:
-    """HTML für den <head>; mit theme_color zusätzlich das passende meta-Tag."""
-    if not theme_color:
-        return SNIPPET_HTML
-    return SNIPPET_HTML + f'<meta name="theme-color" content="{theme_color}">\n'
+SNIPPET_SVG = '<link rel="icon" type="image/svg+xml" href="/favicon.svg">\n'
+
+
+def build_snippet(theme_color: str | None = None, svg: bool = False) -> str:
+    """HTML für den <head>; optional mit SVG-Icon und theme-color."""
+    snippet = SNIPPET_HTML
+    if svg:
+        # Chrome bevorzugt ein ICO mit sizes="any" vor dem SVG -> ICO auf 32x32 festlegen
+        first, rest = snippet.split("\n", 1)
+        first = first.replace('sizes="any"', 'sizes="32x32"')
+        snippet = f"{first}\n{SNIPPET_SVG}{rest}"
+    if theme_color:
+        snippet += f'<meta name="theme-color" content="{theme_color}">\n'
+    return snippet
 
 
 def build_manifest(app_name: str, theme_color: str | None = None, background_color: str | None = None) -> str:
@@ -279,6 +332,7 @@ def build_package(
     app_name: str = "",
     style: IconStyle | None = None,
     theme_color: str | None = None,
+    svg: str | None = None,
 ) -> bytes:
     """Erzeugt ein ZIP mit ICO, PNGs (Browser, Apple, Android inkl. maskable), Manifest und HTML-Snippet."""
     style = style or IconStyle()
@@ -299,8 +353,10 @@ def build_package(
         "android-chrome-maskable-192x192.png": _maskable(square, 192, solid),
         "android-chrome-maskable-512x512.png": _maskable(square, 512, solid),
         "site.webmanifest": build_manifest(app_name, theme_color, style.background).encode("utf-8"),
-        "favicon-snippet.html": build_snippet(theme_color).encode("utf-8"),
+        "favicon-snippet.html": build_snippet(theme_color, svg=svg is not None).encode("utf-8"),
     }
+    if svg is not None:
+        files["favicon.svg"] = svg.encode("utf-8")
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name, content in files.items():
