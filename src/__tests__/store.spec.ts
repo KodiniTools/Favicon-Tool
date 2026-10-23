@@ -50,6 +50,7 @@ describe('ICO erzeugen', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     const store = useFaviconStore()
+    store.format = 'png'
     store.sizes = []
     await store.generateIcons('de')
     expect(store.status?.key).toBe('noSize')
@@ -68,6 +69,7 @@ describe('ICO erzeugen', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     const store = useFaviconStore()
     store.file = pngFile()
+    store.format = 'png'
     store.sizes = [64, 16, 32]
     store.fit = 'crop'
     store.bgEnabled = true
@@ -228,5 +230,27 @@ describe('Ausgabeformat', () => {
     await store.generateIcons('de')
     expect((fetchMock.mock.calls[0]![1].body as FormData).get('format')).toBe('ico')
     expect(anchors[0]?.download).toBe('favicon.ico')
+  })
+})
+
+describe('Feste Größen', () => {
+  it('ICO nutzt immer die Standardgrößen, SVG keine; die Auswahl bleibt erhalten', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => new Response('x'))
+    vi.stubGlobal('fetch', fetchMock)
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    const store = useFaviconStore()
+    store.file = pngFile()
+    store.sizes = []
+    expect(store.fixedSizes).toEqual([16, 32, 48, 64])
+    await store.generateIcons('de')
+    expect((fetchMock.mock.calls[0]![1].body as FormData).get('sizes')).toBe('16,32,48,64')
+
+    store.format = 'svg'
+    await store.generateIcons('de')
+    expect((fetchMock.mock.calls[1]![1].body as FormData).get('sizes')).toBe('')
+
+    store.format = 'png'
+    expect(store.fixedSizes).toBeNull()
+    expect(store.sizes).toEqual([])
   })
 })

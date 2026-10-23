@@ -83,6 +83,12 @@ export const useFaviconStore = defineStore('favicon', () => {
     padding: padding.value,
     radius: radius.value,
   }))
+  /** Feste Größen je Format: ICO immer die Standardgrößen, SVG skalierbar (keine); null = frei wählbar */
+  const fixedSizes = computed<readonly number[] | null>(() => {
+    if (format.value === 'ico') return DEFAULT_SIZES
+    if (format.value === 'svg') return []
+    return null
+  })
   const hasSvg = computed(() => mode.value === 'image' && svgText.value !== null)
   const fontFamily = computed(() => loadedFonts.value[fontValue.value] ?? null)
 
@@ -217,11 +223,13 @@ export const useFaviconStore = defineStore('favicon', () => {
 
   /** Icons im gewählten Format; die Konvertierung erfolgt auf dem Server (Pillow). */
   function generateIcons(locale: Locale): Promise<void> {
-    if (!sizes.value.length) {
+    const fixed = fixedSizes.value
+    if (fixed === null && !sizes.value.length) {
       setStatusKey('noSize', 'danger')
       return Promise.resolve()
     }
-    const sorted = [...sizes.value].sort((a, b) => a - b)
+    // SVG: leere Liste -> Server wählt die Rastergröße selbst
+    const sorted = [...(fixed ?? sizes.value)].sort((a, b) => a - b)
     return generate(
       'convert',
       format.value === 'ico' ? 'favicon.ico' : `favicon.${format.value}`,
@@ -296,6 +304,7 @@ export const useFaviconStore = defineStore('favicon', () => {
     fit,
     format,
     sizes,
+    fixedSizes,
     bgEnabled,
     bgColor,
     padding,
