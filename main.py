@@ -3,6 +3,7 @@ import json
 import os
 from enum import Enum
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -143,6 +144,30 @@ def index(lang: str | None = Query(None)):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+FONT_DIR = STATIC_DIR / "fonts"
+FONT_FORMATS = {".woff2": "woff2", ".woff": "woff", ".ttf": "truetype", ".otf": "opentype"}
+
+
+def list_fonts() -> list[dict[str, str]]:
+    """Schriftdateien in static/fonts, bei jedem Aufruf neu gelesen (neue Dateien erscheinen ohne Neustart).
+
+    Anzeigename aus dem Dateinamen: "Supreme-Bold.woff2" -> "Supreme Bold".
+    """
+    fonts = []
+    for path in sorted(FONT_DIR.iterdir(), key=lambda p: p.name.lower()) if FONT_DIR.is_dir() else []:
+        fmt = FONT_FORMATS.get(path.suffix.lower())
+        if fmt is None or path.name.startswith(".") or not path.is_file():
+            continue
+        label = " ".join(path.stem.replace("_", "-").split("-")).strip() or path.stem
+        fonts.append({"label": label, "url": f"static/fonts/{quote(path.name)}", "format": fmt})
+    return fonts
+
+
+@app.get("/fonts")
+def fonts():
+    return list_fonts()
 
 
 @app.post("/convert")

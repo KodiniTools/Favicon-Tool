@@ -39,6 +39,14 @@
 
 set -euo pipefail
 
+# Prüft /health, die Seite und die Design-Tokens
+check_health() {
+  local url="${1%/}"
+  curl -fsS -o /dev/null "$url/health" \
+    && curl -fsS -o /dev/null "$url/" \
+    && curl -fsS -o /dev/null "$url/static/design-system/tokens-v2.css"
+}
+
 main() {
   # ---- Konfiguration ------------------------------------------------------
   local SCRIPT_DIR
@@ -117,11 +125,15 @@ main() {
   # ---- 5. Erreichbarkeit prüfen ------------------------------------------
   if [[ -n "$HEALTH_URL" ]]; then
     echo "==> Prüfe $HEALTH_URL ..."
-    local attempt
+    local attempt ok
     for attempt in 1 2 3 4 5 6 7 8 9 10; do
-      if curl -fsS -o /dev/null "${HEALTH_URL%/}/health" \
-        && curl -fsS -o /dev/null "$HEALTH_URL" \
-        && curl -fsS -o /dev/null "${HEALTH_URL%/}/static/design-system/tokens-v2.css"; then
+      # Direkt nach dem Neustart ist der Port kurz zu: curl-Fehler nur beim letzten Versuch zeigen
+      if [[ "$attempt" -lt 10 ]]; then
+        check_health "$HEALTH_URL" 2>/dev/null && ok=1 || ok=0
+      else
+        check_health "$HEALTH_URL" && ok=1 || ok=0
+      fi
+      if [[ "$ok" == 1 ]]; then
         echo ""
         echo "==> Fertig. Commit $COMMIT läuft."
         return 0

@@ -189,6 +189,17 @@
             font-size: var(--ds-text-sm);
         }
         input[type="text"]::placeholder { color: var(--ds-text-3); }
+        select {
+            width: 100%;
+            padding: var(--ds-space-2) var(--ds-space-3);
+            border-radius: var(--ds-radius-sm);
+            border: var(--ds-border-width) solid var(--ds-border-strong);
+            background: var(--ds-surface-1);
+            color: var(--ds-text);
+            font: inherit;
+            font-size: var(--ds-text-sm);
+        }
+        select:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
         /* Gestaltung / Paket-Optionen: Zeilen aus Beschriftung, Regler und Wert */
         .field {
             display: grid;
@@ -320,6 +331,13 @@
                     <span></span>
                 </div>
                 <div class="field">
+                    <label for="textFont" data-i18n="fontLabel">Schrift</label>
+                    <select id="textFont">
+                        <option value="" data-i18n="fontSystem">Systemschrift (fett)</option>
+                    </select>
+                    <span></span>
+                </div>
+                <div class="field">
                     <label for="textColor" data-i18n="textColorLabel">Textfarbe</label>
                     <input type="color" id="textColor" value="#1f2937">
                     <span></span>
@@ -432,6 +450,9 @@
                 textLabel: 'Text oder Emoji',
                 textPlaceholder: 'z. B. K oder 🚀',
                 textColorLabel: 'Textfarbe',
+                fontLabel: 'Schrift',
+                fontSystem: 'Systemschrift (fett)',
+                fontLoadFailed: 'Schrift konnte nicht geladen werden – Systemschrift wird verwendet.',
                 noText: 'Bitte Text oder Emoji eingeben.',
                 mockTabLight: 'Browser-Tab hell',
                 mockTabDark: 'Browser-Tab dunkel',
@@ -474,6 +495,9 @@
                 textLabel: 'Text or emoji',
                 textPlaceholder: 'e.g. K or 🚀',
                 textColorLabel: 'Text color',
+                fontLabel: 'Font',
+                fontSystem: 'System font (bold)',
+                fontLoadFailed: 'Could not load the font – using the system font.',
                 noText: 'Please enter text or an emoji.',
                 mockTabLight: 'Browser tab light',
                 mockTabDark: 'Browser tab dark',
@@ -610,6 +634,9 @@
         const textPanel = document.getElementById('textPanel');
         const iconText = document.getElementById('iconText');
         const textColor = document.getElementById('textColor');
+        const textFont = document.getElementById('textFont');
+        // Geladene Schriften aus static/fonts: value (Index) -> CSS-Familienname
+        const loadedFonts = new Map();
         const mockups = document.getElementById('mockups');
 
         // Rastergröße für SVG und Text (Server arbeitet mit max. 512 px, Reserve für Schärfe)
@@ -718,17 +745,21 @@
             const text = iconText.value.trim();
             if (!text) return null;
             const ctx = canvas.getContext('2d');
-            const family = 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+            const fallback = 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+            const custom = loadedFonts.get(textFont.value);
+            // Eigene Schrift: Schnitt steckt in der Datei, daher normales Gewicht (kein künstliches Fett)
+            const weight = custom ? 400 : 700;
+            const family = custom ? `"${custom}", ${fallback}` : fallback;
             ctx.fillStyle = textColor.value;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
             let fontSize = size;
-            ctx.font = `700 ${fontSize}px ${family}`;
+            ctx.font = `${weight} ${fontSize}px ${family}`;
             let m = ctx.measureText(text);
             const boxW = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
             const boxH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
             fontSize *= Math.min((size * 0.86) / Math.max(boxW, 1), (size * 0.86) / Math.max(boxH, 1));
-            ctx.font = `700 ${fontSize}px ${family}`;
+            ctx.font = `${weight} ${fontSize}px ${family}`;
             m = ctx.measureText(text);
             const x = (size - (m.actualBoundingBoxLeft + m.actualBoundingBoxRight)) / 2 + m.actualBoundingBoxLeft;
             const y = (size - (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent)) / 2 + m.actualBoundingBoxAscent;
@@ -987,6 +1018,46 @@
         btnCopy.addEventListener('click', copySnippet);
         form.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateMode));
         [iconText, textColor].forEach(el => el.addEventListener('input', drawPreview));
+
+        // --- Schriften aus static/fonts (GET fonts); neue Dateien erscheinen nach dem Deploy automatisch ---
+        let fontList = [];
+        async function loadFontList() {
+            try {
+                const res = await fetch('fonts');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                fontList = await res.json();
+            } catch (err) {
+                console.warn('Schriftliste nicht verfügbar:', err);
+                fontList = [];
+            }
+            fontList.forEach((font, i) => {
+                const option = document.createElement('option');
+                option.value = String(i);
+                option.textContent = font.label;
+                textFont.append(option);
+            });
+        }
+
+        async function onFontChange() {
+            const value = textFont.value;
+            const font = fontList[Number(value)];
+            if (value === '' || loadedFonts.has(value) || !font) {
+                drawPreview();
+                return;
+            }
+            const family = 'favicon-font-' + value;
+            try {
+                const face = new FontFace(family, `url("${font.url}") format("${font.format}")`);
+                document.fonts.add(await face.load());
+                loadedFonts.set(value, family);
+            } catch (err) {
+                console.warn('Schrift konnte nicht geladen werden:', font.url, err);
+                setStatusKey('fontLoadFailed', 'var(--ds-warning)');
+                textFont.value = '';
+            }
+            if (textFont.value === value || textFont.value === '') drawPreview();
+        }
+        textFont.addEventListener('change', onFontChange);
         appName.addEventListener('input', drawPreview);
 
         ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
@@ -1078,6 +1149,7 @@
         updateDropzoneLabel();
         updateStyleControls();
         loadSnippet();
+        loadFontList();
     })();
     </script>
 </body>

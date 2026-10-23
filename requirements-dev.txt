@@ -1,4 +1,6 @@
 -r requirements.txt
 pytest==9.1.1
-httpx==0.28.1
+# TestClient: httpx2 (Starlette-Empfehlung, Python >= 3.11), sonst httpx
+httpx2==2.16.0; python_version >= "3.11"
+httpx==0.28.1; python_version < "3.11"
 ruff==0.17.1
