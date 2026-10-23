@@ -1,0 +1,137 @@
+/* Gemeinsame Formular-Stile der App. Alle Selektoren sind auf #app begrenzt (:where hält die
+   Spezifität niedrig), damit sie nicht in die SSI-Partials (Footer, Cookie-Banner, Nav) durchschlagen. */
+
+:where(#app) fieldset {
+  border: var(--ds-border-width) solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  margin: var(--ds-space-5) 0 0;
+  padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-4);
+  text-align: left;
+}
+:where(#app) legend {
+  color: var(--ds-text-2);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  padding: 0 var(--ds-space-2);
+}
+:where(#app) .options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-space-2) var(--ds-space-4);
+}
+:where(#app) .options label {
+  font-size: var(--ds-text-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+}
+:where(#app) input[type='radio'],
+:where(#app) input[type='checkbox'] {
+  accent-color: var(--ds-accent);
+}
+:where(#app) input[type='text'] {
+  width: 100%;
+  padding: var(--ds-space-2) var(--ds-space-3);
+  border-radius: var(--ds-radius-sm);
+  border: var(--ds-border-width) solid var(--ds-border-strong);
+  background: var(--ds-surface-1);
+  color: var(--ds-text);
+  font: inherit;
+  font-size: var(--ds-text-sm);
+}
+:where(#app) input[type='text']::placeholder {
+  color: var(--ds-text-3);
+}
+:where(#app) input[type='range'] {
+  width: 100%;
+  accent-color: var(--ds-accent);
+}
+:where(#app) input[type='color'] {
+  width: 3rem;
+  height: var(--ds-control-sm);
+  padding: 2px;
+  border: var(--ds-border-width) solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-1);
+  cursor: pointer;
+}
+:where(#app) input[type='color']:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+:where(#app) input:focus-visible,
+:where(#app) button:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+/* Zeilen aus Beschriftung, Eingabe und Wert (Gestaltung, Paket-Optionen, Textmodus) */
+:where(#app) .field {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) 1fr 3.5rem;
+  align-items: center;
+  gap: var(--ds-space-2) var(--ds-space-3);
+  font-size: var(--ds-text-md);
+}
+:where(#app) .field + .field {
+  margin-top: var(--ds-space-3);
+}
+:where(#app) .field label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  cursor: pointer;
+}
+:where(#app) .field output {
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-2);
+  text-align: right;
+}
+:where(#app) .field.stack {
+  grid-template-columns: 1fr;
+  gap: var(--ds-space-1);
+}
+
+/* Buttons der App */
+:where(#app) button {
+  flex: 1;
+  min-height: var(--ds-control-lg);
+  background: var(--ds-accent);
+  color: var(--ds-on-accent);
+  border: var(--ds-border-width) solid transparent;
+  padding: var(--ds-space-3);
+  border-radius: var(--ds-radius-md);
+  font: inherit;
+  font-size: var(--ds-text-lg);
+  font-weight: var(--ds-weight-semibold);
+  cursor: pointer;
+  transition:
+    background-color var(--ds-duration) var(--ds-ease),
+    border-color var(--ds-duration) var(--ds-ease);
+}
+:where(#app) button:hover {
+  background: var(--ds-accent-hover);
+}
+:where(#app) button.secondary {
+  background: var(--ds-surface-2);
+  color: var(--ds-text);
+  border-color: var(--ds-border-strong);
+}
+:where(#app) button.secondary:hover {
+  background: var(--ds-surface-3);
+  border-color: var(--ds-accent);
+}
+:where(#app) button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  :where(#app) .field {
+    grid-template-columns: 1fr 3.5rem;
+  }
+  :where(#app) .field > :first-child {
+    grid-column: 1 / -1;
+  }
+}

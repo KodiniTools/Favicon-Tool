@@ -1,0 +1,210 @@
+/* Globale Grundlage: Schrift, Seitenfläche und Anpassung der SSI-Partials (Nav/Footer/Cookie-Banner).
+   App-Stile stehen in controls.css (auf #app begrenzt) und in den Komponenten (scoped). */
+
+/* Schrift: Supreme (400/500/700), wie im Collage Maker */
+@font-face {
+  font-family: 'Supreme';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../static/fonts/Supreme-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Supreme';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../static/fonts/Supreme-Medium.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Supreme';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../static/fonts/Supreme-Bold.woff2') format('woff2');
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-lg);
+  line-height: var(--ds-leading);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--ds-surface-0);
+  color: var(--ds-text);
+  transition:
+    background-color var(--ds-duration-slow) var(--ds-ease),
+    color var(--ds-duration-slow) var(--ds-ease);
+}
+
+/* === SSI-Partials (nav/footer außerhalb von #app), übernommen aus dem Collage Maker ===
+   Eigene Hintergründe entfernen, damit die Seitenfläche durchscheint — außer beim Cookie-Banner. */
+body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']) {
+  background-color: transparent !important;
+}
+:where(
+    body > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie'])
+  )
+  :where(*:not(.cookie-banner):not(.cookie-consent):not([class*='cookie'])) {
+  background-color: transparent !important;
+}
+/* Dropdowns/Submenüs der SSI-Navigation bekommen wieder eine feste Fläche */
+body > :not(#app):not(script) [class*='drop'],
+body > :not(#app):not(script) [class*='sub-menu'],
+body > :not(#app):not(script) [class*='submenu'],
+body > :not(#app):not(script) [class*='popup'],
+body > :not(#app):not(script) [class*='popover'],
+body > :not(#app):not(script) [class*='megamenu'] {
+  background-color: var(--ds-surface-1) !important;
+}
+/* Hamburger-Balken und SVG-Icons der Navigation in Textfarbe */
+body > :not(#app):not(script) span:empty,
+body > :not(#app):not(script) [aria-expanded] > span:empty,
+body > :not(#app):not(script) [aria-expanded] > span > span:empty,
+body > :not(#app):not(script) [aria-expanded] > div > span:empty {
+  background-color: currentColor !important;
+  border-color: currentColor !important;
+}
+body > :not(#app):not(script) button svg line,
+body > :not(#app):not(script) button svg path,
+body > :not(#app):not(script) button svg rect,
+body > :not(#app):not(script) [aria-expanded] svg line,
+body > :not(#app):not(script) [aria-expanded] svg path,
+body > :not(#app):not(script) [aria-expanded] svg rect,
+body > :not(#app):not(script) [role='button'] svg line,
+body > :not(#app):not(script) [role='button'] svg path,
+body > :not(#app):not(script) [role='button'] svg rect {
+  stroke: currentColor !important;
+  fill: currentColor !important;
+}
+body > :not(#app):not(script) [class*='toggler-icon'] {
+  filter: brightness(0) saturate(100%) !important;
+}
+:root[data-theme='dark'] body > :not(#app):not(script) [class*='toggler-icon'] {
+  filter: brightness(0) saturate(100%) invert(1) !important;
+}
+/* Cookie-Banner: immer im Vordergrund, über Nav und Dropdowns */
+.cookie-banner,
+.cookie-consent,
+[class*='cookie-banner'],
+[class*='cookie-consent'],
+[id*='cookie-banner'],
+[id*='cookie-consent'] {
+  z-index: 10000 !important;
+  position: fixed !important;
+}
+/* Textfarben der SSI-Partials aus den Tokens (Cookie-Banner ausgenommen) */
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  ),
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  *:not([class*='cookie']):not([id*='cookie']) {
+  color: var(--ds-text) !important;
+}
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  a:not([class*='cookie']):not([id*='cookie']),
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  a:not([class*='cookie']):not([id*='cookie'])
+  *,
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  button.footer-link:not([class*='cookie']):not([id*='cookie']) {
+  color: var(--ds-link) !important;
+}
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  a:hover:not([class*='cookie']):not([id*='cookie']),
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  a:hover:not([class*='cookie']):not([id*='cookie'])
+  *,
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  button.footer-link:hover:not([class*='cookie']):not([id*='cookie']) {
+  color: var(--ds-accent) !important;
+}
+/* Footer-Link als <button> (Cookie-Einstellungen) wie die übrigen Links setzen */
+body > :not(#app) button.footer-link {
+  line-height: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+
+/* === App-Rahmen (auch für den Inhalt ohne JavaScript aus index.html) === */
+#app {
+  display: flex;
+  justify-content: center;
+  padding: var(--ds-space-12) var(--ds-space-4);
+}
+.card {
+  background: var(--ds-surface-1);
+  padding: var(--ds-space-10);
+  border-radius: var(--ds-radius-lg);
+  border: var(--ds-border-width) solid var(--ds-border);
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+}
+:where(#app) h1 {
+  margin: 0 0 var(--ds-space-3);
+  font-size: var(--ds-text-2xl);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+  color: var(--ds-text);
+}
+:where(#app) p {
+  color: var(--ds-text-2);
+  font-size: var(--ds-text-md);
+  margin: 0 0 var(--ds-space-6);
+}
+:where(#app) code {
+  font-family: var(--ds-font-mono);
+  font-size: 0.9em;
+}
+
+@media (max-width: 480px) {
+  #app {
+    padding: var(--ds-space-6) var(--ds-space-4);
+  }
+  .card {
+    padding: var(--ds-space-6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

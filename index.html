@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Generator – favicon.ico &amp; Favicon-Paket erstellen | KodiniTools</title>
+    <!-- SEO: wird vom Server je Sprache ersetzt (main.py, render_index) -->
+    <!--SEO-->
+    <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0a1324" media="(prefers-color-scheme: dark)">
+    <!-- Theme und Sprache vor dem ersten Paint setzen (Tokens: Dark auf :root, Light über data-theme),
+         wie im Collage Maker. Standard ist Light. -->
+    <script>
+        try {
+            document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
+        } catch (e) {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+        // ?lang=de|en (Links/hreflang) hat Vorrang, sonst localStorage-Key 'locale' wie im Collage Maker;
+        // ohne beides gilt die vom Server gesetzte Sprache. Die Vue-App startet in dieser Sprache.
+        (function () {
+            var param = new URLSearchParams(location.search).get('lang');
+            var lang = param === 'en' || param === 'de' ? param : null;
+            try {
+                if (lang) localStorage.setItem('locale', lang);
+                else lang = localStorage.getItem('locale');
+            } catch (e) { /* Storage gesperrt */ }
+            if (lang === 'en' || lang === 'de') document.documentElement.setAttribute('lang', lang);
+        })();
+    </script>
+</head>
+<body>
+    <!--#include virtual="/partials/nav.html" -->
+    <main id="app">
+        <!-- Inhalt ohne JavaScript und für Suchmaschinen; die Vue-App (src/App.vue) ersetzt ihn beim Start -->
+        <div class="card">
+            <h1>Favicon Konverter</h1>
+            <p>Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP, SVG – max. 10&nbsp;MB) oder aus Text/Emoji ein <code>favicon.ico</code> oder ein komplettes Favicon-Paket.</p>
+            <noscript><p>Bitte JavaScript aktivieren, um den Favicon Konverter zu nutzen.</p></noscript>
+        </div>
+    </main>
+    <!--#include virtual="/partials/footer.html" -->
+    <!--#include virtual="/partials/cookie-banner.html" -->
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

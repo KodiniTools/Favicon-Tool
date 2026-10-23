@@ -22,6 +22,21 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
 
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -35,5 +50,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: requirements-dev.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
       - run: pip install -r requirements-dev.txt
+      # main.py liest das gebaute Frontend (dist/index.html)
+      - run: npm ci && npm run build
       - run: pytest -q
