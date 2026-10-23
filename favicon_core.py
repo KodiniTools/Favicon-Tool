@@ -2,10 +2,12 @@
 
 import io
 import json
+import re
 import zipfile
+from dataclasses import dataclass
 from enum import Enum
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageChops, ImageDraw, ImageOps, UnidentifiedImageError
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_PIXELS = 40_000_000  # z. B. 8000 x 5000
@@ -15,6 +17,13 @@ ICO_ALLOWED_SIZES = (16, 24, 32, 48, 64, 128, 256)
 ICO_DEFAULT_SIZES = (16, 32, 48, 64)
 PACKAGE_ICO_SIZES = (16, 32, 48)
 APP_NAME_MAX_LEN = 60
+PADDING_MAX = 40  # Prozent je Seite
+RADIUS_MAX = 50  # Prozent der halben Kantenlänge; 50 = Kreis
+DEFAULT_MANIFEST_COLOR = "#ffffff"
+# Maskierbare Icons: sichtbar ist garantiert nur ein Kreis mit 40 % Radius (W3C "safe zone").
+# Ein Quadrat passt hinein, wenn seine Kante 0,8 / sqrt(2) der Icon-Kante beträgt.
+MASKABLE_CONTENT_RATIO = 0.8 / 2**0.5
+_HEX_COLOR = re.compile(r"#[0-9a-fA-F]{6}")
 
 
 class FitMode(str, Enum):
@@ -35,6 +44,76 @@ class ImageValidationError(ValueError):
 
 class UnsupportedFormatError(ImageValidationError):
     pass
+
+
+@dataclass(frozen=True)
+class IconStyle:
+    """Gestaltung des Icons. Standardwerte lassen das Bild unverändert."""
+
+    background: str | None = None  # "#rrggbb" oder None = transparent
+    padding: int = 0  # Innenabstand je Seite in Prozent (0–PADDING_MAX)
+    radius: int = 0  # Eckenradius in Prozent (0–RADIUS_MAX)
+
+
+def parse_color(raw: str | None, field: str = "Farbe", field_en: str = "Color") -> str | None:
+    """Validiert eine Farbe im Format #rrggbb. Leer -> None."""
+    if raw is None or not raw.strip():
+        return None
+    value = raw.strip()
+    if not _HEX_COLOR.fullmatch(value):
+        raise ImageValidationError(
+            f"{field} ungültig: '{value}' (erwartet #rrggbb)", f"{field_en} invalid: '{value}' (expected #rrggbb)"
+        )
+    return value.lower()
+
+
+def parse_percent(raw: str | None, maximum: int, field: str, field_en: str) -> int:
+    """Validiert eine ganze Prozentzahl 0..maximum. Leer -> 0."""
+    if raw is None or not raw.strip():
+        return 0
+    try:
+        value = int(raw.strip())
+    except ValueError:
+        value = -1
+    if not 0 <= value <= maximum:
+        raise ImageValidationError(
+            f"{field} muss zwischen 0 und {maximum} liegen", f"{field_en} must be between 0 and {maximum}"
+        )
+    return value
+
+
+def parse_style(background: str | None, padding: str | None, radius: str | None) -> IconStyle:
+    return IconStyle(
+        background=parse_color(background, "Hintergrundfarbe", "Background color"),
+        padding=parse_percent(padding, PADDING_MAX, "Innenabstand", "Padding"),
+        radius=parse_percent(radius, RADIUS_MAX, "Eckenradius", "Corner radius"),
+    )
+
+
+def _rgb(color: str) -> tuple[int, int, int]:
+    return int(color[1:3], 16), int(color[3:5], 16), int(color[5:7], 16)
+
+
+def apply_style(square: Image.Image, style: IconStyle) -> Image.Image:
+    """Wendet Innenabstand, Hintergrund und Eckenradius auf ein quadratisches RGBA-Bild an (Größe bleibt)."""
+    if style == IconStyle():
+        return square
+    side = square.width
+    inner = max(1, round(side * (100 - 2 * style.padding) / 100))
+    content = square if inner == side else square.resize((inner, inner), Image.Resampling.LANCZOS)
+    fill = (*_rgb(style.background), 255) if style.background else (0, 0, 0, 0)
+    canvas = Image.new("RGBA", (side, side), fill)
+    offset = (side - inner) // 2
+    canvas.alpha_composite(content, (offset, offset))
+    if style.radius:
+        # 4-fach überabgetastete Maske für glatte Kanten
+        scale = 4
+        mask = Image.new("L", (side * scale, side * scale), 0)
+        radius = round(side * scale / 2 * style.radius / 100)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, side * scale - 1, side * scale - 1), radius=radius, fill=255)
+        mask = mask.resize((side, side), Image.Resampling.LANCZOS)
+        canvas.putalpha(ImageChops.multiply(canvas.getchannel("A"), mask))
+    return canvas
 
 
 def parse_sizes(raw: str | None) -> tuple[int, ...]:
@@ -112,8 +191,8 @@ def make_square(img: Image.Image, fit: FitMode, min_side: int) -> Image.Image:
     return square
 
 
-def build_ico(img: Image.Image, sizes: tuple[int, ...], fit: FitMode) -> bytes:
-    master = make_square(img, fit, max(sizes))
+def build_ico(img: Image.Image, sizes: tuple[int, ...], fit: FitMode, style: IconStyle | None = None) -> bytes:
+    master = apply_style(make_square(img, fit, max(sizes)), style or IconStyle())
     buf = io.BytesIO()
     master.save(buf, format="ICO", sizes=[(s, s) for s in sizes])
     return buf.getvalue()
@@ -130,6 +209,18 @@ def _png(master: Image.Image, size: int, background: tuple[int, int, int] | None
     return buf.getvalue()
 
 
+def _maskable(square: Image.Image, size: int, background: str) -> bytes:
+    """Icon mit voller, deckender Fläche; Motiv innerhalb der Safe Zone (für purpose "maskable")."""
+    inner = round(size * MASKABLE_CONTENT_RATIO)
+    content = square.resize((inner, inner), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGBA", (size, size), (*_rgb(background), 255))
+    offset = (size - inner) // 2
+    canvas.alpha_composite(content, (offset, offset))
+    buf = io.BytesIO()
+    canvas.convert("RGB").save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
 SNIPPET_HTML = """<link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -138,16 +229,35 @@ SNIPPET_HTML = """<link rel="icon" href="/favicon.ico" sizes="any">
 """
 
 
-def build_manifest(app_name: str) -> str:
+def build_snippet(theme_color: str | None = None) -> str:
+    """HTML für den <head>; mit theme_color zusätzlich das passende meta-Tag."""
+    if not theme_color:
+        return SNIPPET_HTML
+    return SNIPPET_HTML + f'<meta name="theme-color" content="{theme_color}">\n'
+
+
+def build_manifest(app_name: str, theme_color: str | None = None, background_color: str | None = None) -> str:
     manifest = {
         "name": app_name,
         "short_name": app_name,
         "icons": [
             {"src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png"},
             {"src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png"},
+            {
+                "src": "/android-chrome-maskable-192x192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
+            {
+                "src": "/android-chrome-maskable-512x512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
         ],
-        "theme_color": "#ffffff",
-        "background_color": "#ffffff",
+        "theme_color": theme_color or DEFAULT_MANIFEST_COLOR,
+        "background_color": background_color or DEFAULT_MANIFEST_COLOR,
         "display": "standalone",
     }
     return json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
@@ -163,19 +273,33 @@ def normalize_app_name(raw: str | None) -> str:
     return name
 
 
-def build_package(img: Image.Image, fit: FitMode, app_name: str = "") -> bytes:
-    """Erzeugt ein ZIP mit ICO, PNGs (Browser, Apple, Android), Manifest und HTML-Snippet."""
-    master = make_square(img, fit, 512)
+def build_package(
+    img: Image.Image,
+    fit: FitMode,
+    app_name: str = "",
+    style: IconStyle | None = None,
+    theme_color: str | None = None,
+) -> bytes:
+    """Erzeugt ein ZIP mit ICO, PNGs (Browser, Apple, Android inkl. maskable), Manifest und HTML-Snippet."""
+    style = style or IconStyle()
+    square = make_square(img, fit, 512)
+    master = apply_style(square, style)
+    # Deckende Fläche für Apple- und maskable Icons: gewählter Hintergrund, sonst Weiß
+    solid = style.background or DEFAULT_MANIFEST_COLOR
     files: dict[str, bytes] = {
         "favicon.ico": build_ico(master, PACKAGE_ICO_SIZES, fit),
         "favicon-16x16.png": _png(master, 16),
         "favicon-32x32.png": _png(master, 32),
-        # iOS stellt Transparenz schwarz dar -> auf Weiß reduzieren
-        "apple-touch-icon.png": _png(master, 180, background=(255, 255, 255)),
+        # iOS stellt Transparenz schwarz dar und rundet selbst ab -> ohne Eckenradius, deckend
+        "apple-touch-icon.png": _png(
+            apply_style(square, IconStyle(padding=style.padding)), 180, background=_rgb(solid)
+        ),
         "android-chrome-192x192.png": _png(master, 192),
         "android-chrome-512x512.png": _png(master, 512),
-        "site.webmanifest": build_manifest(app_name).encode("utf-8"),
-        "favicon-snippet.html": SNIPPET_HTML.encode("utf-8"),
+        "android-chrome-maskable-192x192.png": _maskable(square, 192, solid),
+        "android-chrome-maskable-512x512.png": _maskable(square, 512, solid),
+        "site.webmanifest": build_manifest(app_name, theme_color, style.background).encode("utf-8"),
+        "favicon-snippet.html": build_snippet(theme_color).encode("utf-8"),
     }
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
