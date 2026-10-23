@@ -561,3 +561,46 @@ def test_index_offers_text_mode_svg_and_mockups():
     assert "image/svg+xml" in html
     for el in ("mkTabLight", "mkTabDark", "mkIos", "mkAndroid"):
         assert f'id="{el}"' in html
+
+
+# --- Eigene Schriften (static/fonts) ---------------------------------------------
+
+
+def test_fonts_lists_static_fonts_and_urls_are_served():
+    res = client.get("/fonts")
+    assert res.status_code == 200
+    fonts = res.json()
+    labels = [f["label"] for f in fonts]
+    assert labels == ["Supreme Bold", "Supreme Medium", "Supreme Regular"]
+    for font in fonts:
+        assert font["format"] == "woff2"
+        assert client.get("/" + font["url"]).status_code == 200
+
+
+def test_fonts_new_files_appear_without_restart(monkeypatch, tmp_path):
+    import main
+
+    monkeypatch.setattr(main, "FONT_DIR", tmp_path)
+    assert client.get("/fonts").json() == []
+    for name in ("My Font_Light.ttf", "Zeta-Black.OTF", "a.woff", ".hidden.woff2", "readme.txt"):
+        (tmp_path / name).write_bytes(b"x")
+    (tmp_path / "sub.woff2").mkdir()
+    fonts = client.get("/fonts").json()
+    assert fonts == [
+        {"label": "a", "url": "static/fonts/a.woff", "format": "woff"},
+        {"label": "My Font Light", "url": "static/fonts/My%20Font_Light.ttf", "format": "truetype"},
+        {"label": "Zeta Black", "url": "static/fonts/Zeta-Black.OTF", "format": "opentype"},
+    ]
+
+
+def test_fonts_missing_directory(monkeypatch, tmp_path):
+    import main
+
+    monkeypatch.setattr(main, "FONT_DIR", tmp_path / "fehlt")
+    assert client.get("/fonts").json() == []
+
+
+def test_index_has_font_select():
+    html = client.get("/").text
+    assert '<select id="textFont">' in html
+    assert "fetch('fonts')" in html
