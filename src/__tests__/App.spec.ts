@@ -64,6 +64,19 @@ describe('App', () => {
     wrapper.unmount()
   })
 
+  it('Ausgabeformat wählbar: Knopf und Hinweis passen sich an', async () => {
+    const { wrapper, store } = await mountApp()
+    const labels = wrapper.findAll('#formatOptions label').map((l) => l.text())
+    expect(labels).toEqual(['ICO', 'PNG', 'WebP'])
+    expect(wrapper.find('#btnIco').text()).toBe('favicon.ico')
+    expect(wrapper.text()).not.toContain('als ZIP geliefert')
+    await wrapper.find('input[name="format"][value="png"]').setValue(true)
+    expect(store.format).toBe('png')
+    expect(wrapper.find('#btnIco').text()).toBe('favicon.png')
+    expect(wrapper.text()).toContain('Mehrere Größen als PNG oder WebP werden als ZIP geliefert.')
+    wrapper.unmount()
+  })
+
   it('Textmodus blendet Upload aus und Textfelder ein', async () => {
     const { wrapper } = await mountApp()
     expect(wrapper.find('#textPanel').isVisible()).toBe(false)

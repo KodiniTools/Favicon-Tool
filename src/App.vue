@@ -2,6 +2,7 @@
   import { onMounted } from 'vue'
   import { I18nT, useI18n } from 'vue-i18n'
   import FitOptions from '@/components/FitOptions.vue'
+  import FormatOptions from '@/components/FormatOptions.vue'
   import IconPreview from '@/components/IconPreview.vue'
   import ImageDropzone from '@/components/ImageDropzone.vue'
   import ModeSwitch from '@/components/ModeSwitch.vue'
@@ -23,8 +24,8 @@
     void store.loadFontList()
   })
 
-  function createIco(): void {
-    void store.generateIco(locale.value as Locale)
+  function createIcons(): void {
+    void store.generateIcons(locale.value as Locale)
   }
 
   function createPackage(): void {
@@ -39,18 +40,21 @@
       <template #file><code>favicon.ico</code></template>
     </I18nT>
 
-    <form id="uploadForm" @submit.prevent="createIco">
+    <form id="uploadForm" @submit.prevent="createIcons">
       <ModeSwitch />
       <ImageDropzone v-show="store.mode === 'image'" />
       <TextPanel v-show="store.mode === 'text'" />
       <IconPreview />
       <FitOptions />
+      <FormatOptions />
       <SizeOptions />
       <StyleOptions />
       <PackageOptions />
 
       <div class="buttons">
-        <button id="btnIco" type="submit" :disabled="store.busy">favicon.ico</button>
+        <button id="btnIco" type="submit" :disabled="store.busy">
+          {{ store.format === 'ico' ? 'favicon.ico' : `favicon.${store.format}` }}
+        </button>
         <button
           id="btnPkg"
           type="button"

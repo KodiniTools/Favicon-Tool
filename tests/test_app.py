@@ -126,6 +126,47 @@ def test_convert_invalid_fit_param():
     assert post("/convert", image_bytes(), fit="stretch").status_code == 422
 
 
+def test_convert_format_png_single_size():
+    res = post("/convert", image_bytes((100, 50)), sizes="32", format="png")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "image/png"
+    assert "filename=favicon-32x32.png" in res.headers["content-disposition"]
+    img = Image.open(io.BytesIO(res.content))
+    assert img.format == "PNG" and img.size == (32, 32)
+    # pad: transparente Ränder bleiben erhalten
+    assert img.convert("RGBA").getpixel((0, 0))[3] == 0
+
+
+def test_convert_format_webp_multiple_sizes_zip():
+    res = post("/convert", image_bytes((64, 64)), sizes="48,16", format="webp")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/zip"
+    assert "filename=favicon-webp.zip" in res.headers["content-disposition"]
+    with zipfile.ZipFile(io.BytesIO(res.content)) as zf:
+        assert sorted(zf.namelist()) == ["favicon-16x16.webp", "favicon-48x48.webp"]
+        img = Image.open(io.BytesIO(zf.read("favicon-48x48.webp")))
+        assert img.format == "WEBP" and img.size == (48, 48)
+
+
+def test_convert_format_ico_explicit_and_invalid():
+    res = post("/convert", image_bytes((64, 64)), format="ico")
+    assert res.headers["content-type"] == "image/x-icon"
+    assert "filename=favicon.ico" in res.headers["content-disposition"]
+    assert post("/convert", image_bytes(), format="gif").status_code == 422
+
+
+def test_build_icons_applies_style():
+    content, media, name = favicon_core.build_icons(
+        Image.new("RGBA", (10, 10), (0, 0, 0, 0)),
+        (16,),
+        FitMode.PAD,
+        IconStyle(background="#ff0000"),
+        favicon_core.OutputFormat.PNG,
+    )
+    assert (media, name) == ("image/png", "favicon-16x16.png")
+    assert Image.open(io.BytesIO(content)).convert("RGBA").getpixel((8, 8)) == (255, 0, 0, 255)
+
+
 def test_convert_not_an_image():
     res = post("/convert", b"hello world", filename="x.png")
     assert res.status_code == 415

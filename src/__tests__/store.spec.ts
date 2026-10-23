@@ -51,14 +51,14 @@ describe('ICO erzeugen', () => {
     vi.stubGlobal('fetch', fetchMock)
     const store = useFaviconStore()
     store.sizes = []
-    await store.generateIco('de')
+    await store.generateIcons('de')
     expect(store.status?.key).toBe('noSize')
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('ohne Datei: Hinweis', async () => {
     const store = useFaviconStore()
-    await store.generateIco('de')
+    await store.generateIcons('de')
     expect(store.status?.key).toBe('noFile')
   })
 
@@ -73,7 +73,7 @@ describe('ICO erzeugen', () => {
     store.bgEnabled = true
     store.bgColor = '#112233'
     store.padding = 10
-    await store.generateIco('en')
+    await store.generateIcons('en')
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0]!
@@ -99,7 +99,7 @@ describe('ICO erzeugen', () => {
     )
     const store = useFaviconStore()
     store.file = pngFile()
-    await store.generateIco('de')
+    await store.generateIcons('de')
     expect(store.status).toEqual({ text: 'Fehler: kaputt', tone: 'danger' })
   })
 
@@ -110,7 +110,7 @@ describe('ICO erzeugen', () => {
     )
     const store = useFaviconStore()
     store.file = pngFile()
-    await store.generateIco('de')
+    await store.generateIcons('de')
     expect(store.status).toMatchObject({ key: 'httpError', vars: { status: 502 } })
   })
 
@@ -121,7 +121,7 @@ describe('ICO erzeugen', () => {
     )
     const store = useFaviconStore()
     store.file = pngFile()
-    await store.generateIco('de')
+    await store.generateIcons('de')
     expect(store.status?.key).toBe('timeout')
     expect(store.busy).toBe(false)
   })
@@ -184,5 +184,49 @@ describe('Schriften', () => {
     await store.selectFont('0')
     expect(store.fontValue).toBe('')
     expect(store.status?.key).toBe('fontLoadFailed')
+  })
+})
+
+describe('Ausgabeformat', () => {
+  it('sendet das Format und übernimmt den Dateinamen des Servers', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init: RequestInit) =>
+        new Response('zip', {
+          headers: { 'Content-Disposition': 'attachment; filename=favicon-webp.zip' },
+        })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const anchors: HTMLAnchorElement[] = []
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      anchors.push(this)
+    })
+    const store = useFaviconStore()
+    store.file = pngFile()
+    store.format = 'webp'
+    store.sizes = [32, 16]
+    await store.generateIcons('de')
+
+    const body = fetchMock.mock.calls[0]![1].body as FormData
+    expect(body.get('format')).toBe('webp')
+    expect(body.get('sizes')).toBe('16,32')
+    expect(anchors[0]?.download).toBe('favicon-webp.zip')
+  })
+
+  it('Standard ist ICO; ohne Header bleibt der lokale Dateiname', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => new Response('ico'))
+    vi.stubGlobal('fetch', fetchMock)
+    const anchors: HTMLAnchorElement[] = []
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      anchors.push(this)
+    })
+    const store = useFaviconStore()
+    store.file = pngFile()
+    await store.generateIcons('de')
+    expect((fetchMock.mock.calls[0]![1].body as FormData).get('format')).toBe('ico')
+    expect(anchors[0]?.download).toBe('favicon.ico')
   })
 })

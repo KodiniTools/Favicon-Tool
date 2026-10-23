@@ -37,6 +37,15 @@ export async function errorDetail(res: Response, fallback: string): Promise<stri
   return fallback
 }
 
+/** Dateiname aus dem Content-Disposition-Header (attachment; filename=...), sonst `fallback`. */
+export function dispositionFilename(res: Response, fallback: string): string {
+  const header = res.headers.get('Content-Disposition') ?? ''
+  const match = /filename="?([^";]+)"?/i.exec(header)
+  const name = match?.[1]?.trim()
+  // nur einfache Dateinamen übernehmen, keine Pfade
+  return name && /^[\w.-]+$/.test(name) ? name : fallback
+}
+
 /** Blob als Datei herunterladen. */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)

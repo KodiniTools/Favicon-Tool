@@ -1,11 +1,17 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import type { Locale, MessageKey } from '@/i18n'
-import { downloadBlob, errorDetail, fetchWithTimeout, isAbortError } from '@/lib/api'
+import {
+  dispositionFilename,
+  downloadBlob,
+  errorDetail,
+  fetchWithTimeout,
+  isAbortError,
+} from '@/lib/api'
 import { DEFAULT_SIZES, MAX_BYTES, RASTER_SIZE, REQUEST_TIMEOUT_MS } from '@/lib/constants'
 import { canvasToPng, rasterize, renderTextCanvas } from '@/lib/draw'
 import { createFontLoader, isFontEntry } from '@/lib/fonts'
-import type { FontEntry, Fit, IconStyle, Mode, Source, StatusTone } from '@/lib/types'
+import type { FontEntry, Fit, IconStyle, Mode, OutputFormat, Source, StatusTone } from '@/lib/types'
 
 /** Statusmeldung: übersetzbarer Schlüssel oder fertiger Text (z. B. Fehlermeldung des Servers). */
 export interface Status {
@@ -58,6 +64,7 @@ export const useFaviconStore = defineStore('favicon', () => {
 
   // --- Optionen ---
   const fit = ref<Fit>('pad')
+  const format = ref<OutputFormat>('ico')
   const sizes = ref<number[]>([...DEFAULT_SIZES])
   const bgEnabled = ref(false)
   const bgColor = ref('#ffffff')
@@ -197,7 +204,8 @@ export const useFaviconStore = defineStore('favicon', () => {
         else setStatusKey('httpError', 'danger', { status: res.status })
         return
       }
-      downloadBlob(await res.blob(), filename)
+      // Dateiname vom Server (PNG/WebP: eine Datei oder ZIP je nach Anzahl der Größen)
+      downloadBlob(await res.blob(), dispositionFilename(res, filename))
       setStatusKey('done', 'success')
     } catch (err) {
       if (isAbortError(err)) setStatusKey('timeout', 'danger')
@@ -207,13 +215,19 @@ export const useFaviconStore = defineStore('favicon', () => {
     }
   }
 
-  function generateIco(locale: Locale): Promise<void> {
+  /** Icons im gewählten Format; die Konvertierung erfolgt auf dem Server (Pillow). */
+  function generateIcons(locale: Locale): Promise<void> {
     if (!sizes.value.length) {
       setStatusKey('noSize', 'danger')
       return Promise.resolve()
     }
     const sorted = [...sizes.value].sort((a, b) => a - b)
-    return generate('convert', 'favicon.ico', { sizes: sorted.join(','), ...styleFields() }, locale)
+    return generate(
+      'convert',
+      format.value === 'ico' ? 'favicon.ico' : `favicon.${format.value}`,
+      { sizes: sorted.join(','), format: format.value, ...styleFields() },
+      locale
+    )
   }
 
   function generatePackage(locale: Locale): Promise<void> {
@@ -274,6 +288,7 @@ export const useFaviconStore = defineStore('favicon', () => {
     fontList,
     loadedFonts,
     fit,
+    format,
     sizes,
     bgEnabled,
     bgColor,
@@ -292,7 +307,7 @@ export const useFaviconStore = defineStore('favicon', () => {
     source,
     selectFile,
     uploadBlob,
-    generateIco,
+    generateIcons,
     generatePackage,
     loadFontList,
     preloadFont,
