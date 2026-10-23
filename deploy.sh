@@ -20,7 +20,7 @@
 #   VENV_DIR       virtuelles Environment    (Default: <repo>/.venv)
 #   PYTHON         Python für das venv       (Default: python3)
 #   SERVICE_NAME   systemd-Dienst            (Default: favicon-tool; leer = kein Neustart)
-#   HEALTH_URL     Prüf-URL nach dem Neustart (Default: http://127.0.0.1:8000/; leer = überspringen)
+#   HEALTH_URL     Prüf-URL nach dem Neustart (Default: http://127.0.0.1:8005/; leer = überspringen)
 #   RUN_TESTS      Tests laufen lassen       (Default: 1; auf 0 zum Überspringen)
 #
 # Beispiel:
@@ -28,7 +28,7 @@
 #
 # Voraussetzungen auf dem Server: git, python3 (mit venv), curl,
 # systemd-Unit für uvicorn, z. B.:
-#   ExecStart=<repo>/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+#   ExecStart=<repo>/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8005
 #   WorkingDirectory=<repo>
 # ------------------------------------------------------------------------
 #
@@ -49,7 +49,7 @@ main() {
   local VENV_DIR="${VENV_DIR:-$SCRIPT_DIR/.venv}"
   local PYTHON="${PYTHON:-python3}"
   local SERVICE="${SERVICE_NAME-favicon-tool}"
-  local HEALTH_URL="${HEALTH_URL-http://127.0.0.1:8000/}"
+  local HEALTH_URL="${HEALTH_URL-http://127.0.0.1:8005/}"
   local RUN_TESTS="${RUN_TESTS:-1}"
 
   echo "==> Repo:    $SCRIPT_DIR"
@@ -119,7 +119,8 @@ main() {
     echo "==> Prüfe $HEALTH_URL ..."
     local attempt
     for attempt in 1 2 3 4 5 6 7 8 9 10; do
-      if curl -fsS -o /dev/null "$HEALTH_URL" \
+      if curl -fsS -o /dev/null "${HEALTH_URL%/}/health" \
+        && curl -fsS -o /dev/null "$HEALTH_URL" \
         && curl -fsS -o /dev/null "${HEALTH_URL%/}/static/design-system/tokens-v2.css"; then
         echo ""
         echo "==> Fertig. Commit $COMMIT läuft."
