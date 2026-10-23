@@ -228,6 +228,31 @@
         .copy-row button { flex: 0 0 auto; min-height: var(--ds-control-md); padding: var(--ds-space-2) var(--ds-space-4); font-size: var(--ds-text-md); }
         #copyStatus { font-size: var(--ds-text-sm); color: var(--ds-text-2); }
         input:focus-visible, button:focus-visible { outline: none; box-shadow: var(--ds-focus-ring); }
+        /* Quelle: Bild oder Text/Emoji */
+        .mode { display: flex; gap: var(--ds-space-2); margin-bottom: var(--ds-space-4); }
+        .mode label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--ds-space-2);
+            min-height: var(--ds-control-md);
+            border: var(--ds-border-width) solid var(--ds-border-strong);
+            border-radius: var(--ds-radius-md);
+            background: var(--ds-surface-2);
+            font-size: var(--ds-text-md);
+            font-weight: var(--ds-weight-medium);
+            cursor: pointer;
+        }
+        .mode label:has(input:checked) { border-color: var(--ds-accent); background: var(--ds-accent-soft); }
+        .mode input { accent-color: var(--ds-accent); }
+        .mode label:focus-within { box-shadow: var(--ds-focus-ring); }
+        #textPanel { text-align: left; border: 2px dashed var(--ds-border-strong); border-radius: var(--ds-radius-md); padding: var(--ds-space-4); background: var(--ds-surface-0); }
+        #textPanel[hidden], .dropzone[hidden] { display: none; }
+        #mockups { display: none; margin-top: var(--ds-space-5); gap: var(--ds-space-4); flex-wrap: wrap; justify-content: center; align-items: flex-end; }
+        #mockups figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-1); }
+        #mockups figcaption { font-size: var(--ds-text-xs); color: var(--ds-text-3); }
+        #mockups canvas { border-radius: var(--ds-radius-sm); }
         #preview { display: none; margin-top: var(--ds-space-5); align-items: flex-end; justify-content: center; gap: var(--ds-space-4); }
         #preview figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--ds-space-1); }
         #preview figcaption { font-size: var(--ds-text-xs); color: var(--ds-text-3); }
@@ -278,15 +303,41 @@
         <p data-i18n-html="intro">Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP – max. 10&nbsp;MB) ein <code>favicon.ico</code> oder ein komplettes Favicon-Paket.</p>
 
         <form id="uploadForm">
+            <div class="mode" role="radiogroup" data-i18n-aria="modeLabel" aria-label="Quelle">
+                <label><input type="radio" name="mode" value="image" checked> <span data-i18n="modeImage">Bild</span></label>
+                <label><input type="radio" name="mode" value="text"> <span data-i18n="modeText">Text / Emoji</span></label>
+            </div>
+
             <label class="dropzone" id="dropzone">
                 <span id="label-text">Datei auswählen oder hierher ziehen</span>
-                <input type="file" id="fileInput" name="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" required>
+                <input type="file" id="fileInput" name="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,image/svg+xml,.svg">
             </label>
+
+            <div id="textPanel" hidden>
+                <div class="field">
+                    <label for="iconText" data-i18n="textLabel">Text oder Emoji</label>
+                    <input type="text" id="iconText" maxlength="4" value="K" autocomplete="off" data-i18n-placeholder="textPlaceholder" placeholder="z. B. K oder 🚀">
+                    <span></span>
+                </div>
+                <div class="field">
+                    <label for="textColor" data-i18n="textColorLabel">Textfarbe</label>
+                    <input type="color" id="textColor" value="#1f2937">
+                    <span></span>
+                </div>
+            </div>
 
             <div id="preview">
                 <figure><canvas id="pv64" width="64" height="64"></canvas><figcaption>64</figcaption></figure>
                 <figure><canvas id="pv32" width="32" height="32"></canvas><figcaption>32</figcaption></figure>
                 <figure><canvas id="pv16" width="16" height="16"></canvas><figcaption>16</figcaption></figure>
+            </div>
+
+            <!-- So sieht das Icon im Einsatz aus (gezeichnet wie auf dem Server) -->
+            <div id="mockups">
+                <figure><canvas id="mkTabLight" width="220" height="40"></canvas><figcaption data-i18n="mockTabLight">Browser-Tab hell</figcaption></figure>
+                <figure><canvas id="mkTabDark" width="220" height="40"></canvas><figcaption data-i18n="mockTabDark">Browser-Tab dunkel</figcaption></figure>
+                <figure><canvas id="mkIos" width="60" height="60"></canvas><figcaption>iOS</figcaption></figure>
+                <figure><canvas id="mkAndroid" width="60" height="60"></canvas><figcaption>Android</figcaption></figure>
             </div>
 
             <fieldset>
@@ -374,7 +425,17 @@
             de: {
                 pageTitle: 'Favicon Generator – favicon.ico & Favicon-Paket erstellen | KodiniTools',
                 title: 'Favicon Konverter',
-                intro: 'Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP – max. 10&nbsp;MB) ein <code>favicon.ico</code> oder ein komplettes Favicon-Paket.',
+                intro: 'Erstelle aus einem Bild (PNG, JPG, WebP, GIF, BMP, SVG – max. 10&nbsp;MB) oder aus Text/Emoji ein <code>favicon.ico</code> oder ein komplettes Favicon-Paket.',
+                modeLabel: 'Quelle',
+                modeImage: 'Bild',
+                modeText: 'Text / Emoji',
+                textLabel: 'Text oder Emoji',
+                textPlaceholder: 'z. B. K oder 🚀',
+                textColorLabel: 'Textfarbe',
+                noText: 'Bitte Text oder Emoji eingeben.',
+                mockTabLight: 'Browser-Tab hell',
+                mockTabDark: 'Browser-Tab dunkel',
+                tabTitleDefault: 'Meine Webseite',
                 dropzone: 'Datei auswählen oder hierher ziehen',
                 fitLegend: 'Nicht-quadratische Bilder',
                 fitPad: 'Transparent auffüllen',
@@ -406,7 +467,17 @@
             en: {
                 pageTitle: 'Favicon Generator – Create favicon.ico & favicon package | KodiniTools',
                 title: 'Favicon Converter',
-                intro: 'Create a <code>favicon.ico</code> or a complete favicon package from an image (PNG, JPG, WebP, GIF, BMP – max. 10&nbsp;MB).',
+                intro: 'Create a <code>favicon.ico</code> or a complete favicon package from an image (PNG, JPG, WebP, GIF, BMP, SVG – max. 10&nbsp;MB) or from text/emoji.',
+                modeLabel: 'Source',
+                modeImage: 'Image',
+                modeText: 'Text / emoji',
+                textLabel: 'Text or emoji',
+                textPlaceholder: 'e.g. K or 🚀',
+                textColorLabel: 'Text color',
+                noText: 'Please enter text or an emoji.',
+                mockTabLight: 'Browser tab light',
+                mockTabDark: 'Browser tab dark',
+                tabTitleDefault: 'My Website',
                 dropzone: 'Choose a file or drag it here',
                 fitLegend: 'Non-square images',
                 fitPad: 'Pad with transparency',
@@ -536,6 +607,17 @@
         const snippetCode = document.getElementById('snippet');
         const btnCopy = document.getElementById('btnCopy');
         const copyStatus = document.getElementById('copyStatus');
+        const textPanel = document.getElementById('textPanel');
+        const iconText = document.getElementById('iconText');
+        const textColor = document.getElementById('textColor');
+        const mockups = document.getElementById('mockups');
+
+        // Rastergröße für SVG und Text (Server arbeitet mit max. 512 px, Reserve für Schärfe)
+        const RASTER_SIZE = 1024;
+        // Wie favicon_core.MASKABLE_CONTENT_RATIO: Quadrat in der Safe Zone (Kreis mit 40 % Radius)
+        const MASKABLE_CONTENT_RATIO = 0.8 / Math.SQRT2;
+        // SVG-Quelltext der aktuellen Datei (für favicon.svg im Paket), sonst null
+        let svgText = null;
 
         let previewImage = null;
         // Zuletzt angezeigte eigene Statusmeldung, damit sie beim Sprachwechsel neu übersetzt wird
@@ -625,38 +707,181 @@
             ctx.closePath();
         }
 
+        function currentMode() {
+            return form.querySelector('input[name="mode"]:checked').value;
+        }
+
+        // Text/Emoji möglichst groß und optisch zentriert auf eine transparente Fläche zeichnen
+        function renderTextCanvas(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const text = iconText.value.trim();
+            if (!text) return null;
+            const ctx = canvas.getContext('2d');
+            const family = 'system-ui, -apple-system, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+            ctx.fillStyle = textColor.value;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            let fontSize = size;
+            ctx.font = `700 ${fontSize}px ${family}`;
+            let m = ctx.measureText(text);
+            const boxW = m.actualBoundingBoxLeft + m.actualBoundingBoxRight;
+            const boxH = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+            fontSize *= Math.min((size * 0.86) / Math.max(boxW, 1), (size * 0.86) / Math.max(boxH, 1));
+            ctx.font = `700 ${fontSize}px ${family}`;
+            m = ctx.measureText(text);
+            const x = (size - (m.actualBoundingBoxLeft + m.actualBoundingBoxRight)) / 2 + m.actualBoundingBoxLeft;
+            const y = (size - (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent)) / 2 + m.actualBoundingBoxAscent;
+            ctx.fillText(text, x, y);
+            return canvas;
+        }
+
+        // Aktuelle Quelle als zeichenbares Objekt: {img, w, h} oder null
+        function currentSource() {
+            if (currentMode() === 'text') {
+                const canvas = renderTextCanvas(512);
+                return canvas ? { img: canvas, w: canvas.width, h: canvas.height } : null;
+            }
+            if (!previewImage) return null;
+            // SVG ohne width/height liefert im Browser teils 0 als natürliche Größe
+            const w = previewImage.naturalWidth || 512;
+            const h = previewImage.naturalHeight || 512;
+            return { img: previewImage, w, h };
+        }
+
+        // Zeichnet die Quelle quadratisch (pad/crop) in ein Feld (x, y, size) – ohne Gestaltung
+        function drawSquare(ctx, src, x, y, size) {
+            if (currentFit() === 'crop') {
+                const side = Math.min(src.w, src.h);
+                ctx.drawImage(src.img, (src.w - side) / 2, (src.h - side) / 2, side, side, x, y, size, size);
+            } else {
+                const scale = size / Math.max(src.w, src.h);
+                const dw = src.w * scale, dh = src.h * scale;
+                ctx.drawImage(src.img, x + (size - dw) / 2, y + (size - dh) / 2, dw, dh);
+            }
+        }
+
+        // Icon mit Gestaltung wie auf dem Server (favicon_core.apply_style) an Position (x, y)
+        function drawStyled(ctx, src, style, x, y, size) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.imageSmoothingQuality = 'high';
+            if (style.radius) {
+                roundedRectPath(ctx, size, (size / 2) * (style.radius / 100));
+                ctx.clip();
+            }
+            if (style.background) {
+                ctx.fillStyle = style.background;
+                ctx.fillRect(0, 0, size, size);
+            }
+            const inner = Math.max(1, size * (100 - 2 * style.padding) / 100);
+            drawSquare(ctx, src, (size - inner) / 2, (size - inner) / 2, inner);
+            ctx.restore();
+        }
+
+        const TAB_THEMES = {
+            light: { strip: '#dee1e6', tab: '#ffffff', text: '#1f1f1f' },
+            dark: { strip: '#202124', tab: '#35363a', text: '#e8eaed' },
+        };
+
+        function drawTab(canvas, theme, src, style) {
+            const ctx = canvas.getContext('2d');
+            const c = TAB_THEMES[theme];
+            const w = canvas.width, h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = c.strip;
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = c.tab;
+            ctx.beginPath();
+            ctx.moveTo(6, h);
+            ctx.arcTo(6, 6, 18, 6, 8);
+            ctx.arcTo(w - 6, 6, w - 6, h, 8);
+            ctx.lineTo(w - 6, h);
+            ctx.closePath();
+            ctx.fill();
+            drawStyled(ctx, src, style, 18, 15, 16);
+            ctx.fillStyle = c.text;
+            ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+            ctx.textBaseline = 'middle';
+            const title = appName.value.trim() || t('tabTitleDefault');
+            let shown = title;
+            while (shown.length > 1 && ctx.measureText(shown + '…').width > w - 60) shown = shown.slice(0, -1);
+            ctx.fillText(shown === title ? title : shown + '…', 42, 23);
+        }
+
+        function drawHomeIcon(canvas, src, style, platform) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            ctx.clearRect(0, 0, size, size);
+            ctx.save();
+            ctx.beginPath();
+            if (platform === 'ios') {
+                // iOS rundet selbst ab; Server liefert deckend mit Innenabstand, ohne Radius
+                roundedRectPath(ctx, size, size * 0.225);
+            } else {
+                // Android maskiert z. B. kreisförmig; maskable Icon mit Motiv in der Safe Zone
+                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            }
+            ctx.clip();
+            ctx.fillStyle = style.background || '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+            if (platform === 'ios') {
+                drawStyled(ctx, src, { background: '', padding: style.padding, radius: 0 }, 0, 0, size);
+            } else {
+                const inner = size * MASKABLE_CONTENT_RATIO;
+                drawSquare(ctx, src, (size - inner) / 2, (size - inner) / 2, inner);
+            }
+            ctx.restore();
+        }
+
         function drawPreview() {
-            if (!previewImage) return;
-            const w = previewImage.naturalWidth;
-            const h = previewImage.naturalHeight;
-            const crop = currentFit() === 'crop';
+            const src = currentSource();
+            if (!src) {
+                preview.style.display = 'none';
+                mockups.style.display = 'none';
+                return;
+            }
             const style = currentStyle();
             for (const size of [64, 32, 16]) {
                 const ctx = document.getElementById('pv' + size).getContext('2d');
-                ctx.save();
                 ctx.clearRect(0, 0, size, size);
-                ctx.imageSmoothingQuality = 'high';
-                if (style.radius) {
-                    roundedRectPath(ctx, size, (size / 2) * (style.radius / 100));
-                    ctx.clip();
-                }
-                if (style.background) {
-                    ctx.fillStyle = style.background;
-                    ctx.fillRect(0, 0, size, size);
-                }
-                const inner = Math.max(1, size * (100 - 2 * style.padding) / 100);
-                const offset = (size - inner) / 2;
-                if (crop) {
-                    const side = Math.min(w, h);
-                    ctx.drawImage(previewImage, (w - side) / 2, (h - side) / 2, side, side, offset, offset, inner, inner);
-                } else {
-                    const scale = inner / Math.max(w, h);
-                    const dw = w * scale, dh = h * scale;
-                    ctx.drawImage(previewImage, offset + (inner - dw) / 2, offset + (inner - dh) / 2, dw, dh);
-                }
-                ctx.restore();
+                drawStyled(ctx, src, style, 0, 0, size);
             }
+            drawTab(document.getElementById('mkTabLight'), 'light', src, style);
+            drawTab(document.getElementById('mkTabDark'), 'dark', src, style);
+            drawHomeIcon(document.getElementById('mkIos'), src, style, 'ios');
+            drawHomeIcon(document.getElementById('mkAndroid'), src, style, 'android');
             preview.style.display = 'flex';
+            mockups.style.display = 'flex';
+        }
+
+        // Datei für den Upload: Rasterbilder unverändert, SVG und Text als PNG aus dem Browser
+        async function uploadBlob() {
+            if (currentMode() === 'text') {
+                const canvas = renderTextCanvas(RASTER_SIZE);
+                if (!canvas) return { error: 'noText' };
+                return { blob: await new Promise(r => canvas.toBlob(r, 'image/png')), name: 'text.png' };
+            }
+            const file = fileInput.files[0];
+            if (!file) return { error: 'noFile' };
+            if (file.size > MAX_BYTES) return { error: 'tooLarge' };
+            if (svgText === null) return { blob: file, name: file.name };
+            const src = currentSource();
+            if (!src) return { error: 'previewFailed' };
+            const scale = RASTER_SIZE / Math.max(src.w, src.h);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(src.w * scale));
+            canvas.height = Math.max(1, Math.round(src.h * scale));
+            canvas.getContext('2d').drawImage(src.img, 0, 0, canvas.width, canvas.height);
+            return { blob: await new Promise(r => canvas.toBlob(r, 'image/png')), name: file.name.replace(/\.svg$/i, '') + '.png' };
+        }
+
+        function updateMode() {
+            const text = currentMode() === 'text';
+            dropzone.hidden = text;
+            textPanel.hidden = !text;
+            drawPreview();
+            loadSnippet();
         }
 
         function updateStyleControls() {
@@ -676,6 +901,7 @@
         async function loadSnippet() {
             const request = ++snippetRequest;
             const params = new URLSearchParams({ lang: locale });
+            if (currentMode() === 'image' && svgText !== null) params.set('svg', 'true');
             if (themeEnabled.checked) params.set('theme_color', themeColor.value);
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 10000);
@@ -710,13 +936,23 @@
             copyStatus.textContent = t(ok ? 'copied' : 'copyFailed');
         }
 
-        function loadPreview(file) {
+        function isSvg(file) {
+            return file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+        }
+
+        async function loadPreview(file) {
             previewImage = null;
-            preview.style.display = 'none';
+            svgText = null;
+            drawPreview();
+            if (isSvg(file)) {
+                try { svgText = await file.text(); } catch (_) { svgText = null; }
+            }
+            loadSnippet();
             const url = URL.createObjectURL(file);
             const img = new Image();
             img.onload = () => {
                 URL.revokeObjectURL(url);
+                if (fileInput.files[0] !== file) return; // inzwischen andere Datei gewählt
                 previewImage = img;
                 drawPreview();
             };
@@ -749,6 +985,9 @@
         themeEnabled.addEventListener('change', () => { updateStyleControls(); loadSnippet(); });
         themeColor.addEventListener('change', loadSnippet);
         btnCopy.addEventListener('click', copySnippet);
+        form.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateMode));
+        [iconText, textColor].forEach(el => el.addEventListener('input', drawPreview));
+        appName.addEventListener('input', drawPreview);
 
         ['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
             e.preventDefault();
@@ -774,18 +1013,14 @@
         }
 
         async function generate(endpoint, filename, extraFields) {
-            const file = fileInput.files[0];
-            if (!file) {
-                setStatusKey('noFile', 'var(--ds-danger)');
-                return;
-            }
-            if (file.size > MAX_BYTES) {
-                setStatusKey('tooLarge', 'var(--ds-danger)');
+            const upload = await uploadBlob();
+            if (upload.error) {
+                setStatusKey(upload.error, upload.error === 'previewFailed' ? 'var(--ds-warning)' : 'var(--ds-danger)');
                 return;
             }
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', upload.blob, upload.name);
             formData.append('fit', currentFit());
             formData.append('lang', locale);
             for (const [k, v] of Object.entries(extraFields)) formData.append(k, v);
@@ -831,10 +1066,10 @@
         });
 
         btnPkg.addEventListener('click', () => {
-            if (!fileInput.reportValidity()) return;
             generate('package', 'favicon-package.zip', {
                 app_name: appName.value,
                 theme_color: themeEnabled.checked ? themeColor.value : '',
+                svg: currentMode() === 'image' && svgText !== null ? svgText : '',
                 ...styleFields(),
             });
         });

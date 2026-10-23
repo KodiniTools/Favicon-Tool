@@ -22,6 +22,7 @@ from favicon_core import (
     parse_color,
     parse_sizes,
     parse_style,
+    validate_svg,
 )
 
 app = FastAPI(title="Favicon Generator")
@@ -179,6 +180,7 @@ async def package(
     padding: str | None = Form(None),
     radius: str | None = Form(None),
     theme_color: str | None = Form(None),
+    svg: str | None = Form(None),
     lang: Lang = Form(Lang.DE),
 ):
     data = await read_limited(file, lang)
@@ -186,8 +188,9 @@ async def package(
         name = normalize_app_name(app_name)
         style = parse_style(background, padding, radius)
         theme = parse_color(theme_color, "Theme-Farbe", "Theme color")
+        svg_source = validate_svg(svg)
         img = await run_in_threadpool(load_image, data)
-        archive = await run_in_threadpool(build_package, img, fit, name, style, theme)
+        archive = await run_in_threadpool(build_package, img, fit, name, style, theme, svg_source)
     except ImageValidationError as e:
         raise to_http_error(e, lang) from None
 
@@ -199,9 +202,9 @@ async def package(
 
 
 @app.get("/snippet", response_class=PlainTextResponse)
-def snippet(theme_color: str | None = Query(None), lang: Lang = Query(Lang.DE)):
+def snippet(theme_color: str | None = Query(None), svg: bool = Query(False), lang: Lang = Query(Lang.DE)):
     """HTML-Snippet für den <head>, wie es im Paket als favicon-snippet.html liegt."""
     try:
-        return build_snippet(parse_color(theme_color, "Theme-Farbe", "Theme color"))
+        return build_snippet(parse_color(theme_color, "Theme-Farbe", "Theme color"), svg=svg)
     except ImageValidationError as e:
         raise to_http_error(e, lang) from None
