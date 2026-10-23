@@ -36,6 +36,16 @@ class FitMode(str, Enum):
     CROP = "crop"  # mittig quadratisch zuschneiden
 
 
+class OutputFormat(str, Enum):
+    ICO = "ico"
+    PNG = "png"
+    WEBP = "webp"
+
+
+# Pillow-Formatname und Media-Type je Ausgabeformat (ohne ICO, das build_ico erzeugt)
+_RASTER_OUTPUT = {OutputFormat.PNG: ("PNG", "image/png"), OutputFormat.WEBP: ("WEBP", "image/webp")}
+
+
 class ImageValidationError(ValueError):
     """Ungültige Eingabe; Nachricht ist für Endnutzer gedacht (deutsch, ``en`` = englische Fassung)."""
 
@@ -201,6 +211,41 @@ def build_ico(img: Image.Image, sizes: tuple[int, ...], fit: FitMode, style: Ico
     buf = io.BytesIO()
     master.save(buf, format="ICO", sizes=[(s, s) for s in sizes])
     return buf.getvalue()
+
+
+def build_icons(
+    img: Image.Image,
+    sizes: tuple[int, ...],
+    fit: FitMode,
+    style: IconStyle | None = None,
+    fmt: OutputFormat = OutputFormat.ICO,
+) -> tuple[bytes, str, str]:
+    """Icons im gewünschten Format: (Inhalt, Media-Type, Dateiname).
+
+    ICO enthält alle Größen in einer Datei. PNG/WebP liefern bei einer Größe die Datei direkt,
+    bei mehreren ein ZIP mit favicon-<n>x<n>.<ext> je Größe.
+    """
+    if fmt is OutputFormat.ICO:
+        return build_ico(img, sizes, fit, style), "image/x-icon", "favicon.ico"
+    pil_format, media_type = _RASTER_OUTPUT[fmt]
+    master = apply_style(make_square(img, fit, max(sizes)), style or IconStyle())
+    files = {}
+    for size in sizes:
+        buf = io.BytesIO()
+        frame = master.resize((size, size), Image.Resampling.LANCZOS)
+        if pil_format == "WEBP":
+            frame.save(buf, format="WEBP", lossless=True)
+        else:
+            frame.save(buf, format="PNG", optimize=True)
+        files[f"favicon-{size}x{size}.{fmt.value}"] = buf.getvalue()
+    if len(files) == 1:
+        (name, content), *_ = files.items()
+        return content, media_type, name
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, content in files.items():
+            zf.writestr(name, content)
+    return buf.getvalue(), "application/zip", f"favicon-{fmt.value}.zip"
 
 
 def _png(master: Image.Image, size: int, background: tuple[int, int, int] | None = None) -> bytes:

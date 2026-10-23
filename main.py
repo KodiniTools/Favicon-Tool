@@ -14,8 +14,9 @@ from favicon_core import (
     MAX_UPLOAD_BYTES,
     FitMode,
     ImageValidationError,
+    OutputFormat,
     UnsupportedFormatError,
-    build_ico,
+    build_icons,
     build_package,
     build_snippet,
     load_image,
@@ -192,6 +193,7 @@ async def convert(
     background: str | None = Form(None),
     padding: str | None = Form(None),
     radius: str | None = Form(None),
+    format: OutputFormat = Form(OutputFormat.ICO),
     lang: Lang = Form(Lang.DE),
 ):
     data = await read_limited(file, lang)
@@ -199,14 +201,14 @@ async def convert(
         size_list = parse_sizes(sizes)
         style = parse_style(background, padding, radius)
         img = await run_in_threadpool(load_image, data)
-        ico = await run_in_threadpool(build_ico, img, size_list, fit, style)
+        content, media_type, filename = await run_in_threadpool(build_icons, img, size_list, fit, style, format)
     except ImageValidationError as e:
         raise to_http_error(e, lang) from None
 
     return Response(
-        content=ico,
-        media_type="image/x-icon",
-        headers={"Content-Disposition": "attachment; filename=favicon.ico"},
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
