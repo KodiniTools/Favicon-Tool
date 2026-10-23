@@ -21,7 +21,7 @@ from favicon_core import (
     parse_sizes,
     parse_style,
 )
-from main import app
+from main import STATIC_DIR, app
 
 client = TestClient(app)
 
@@ -570,10 +570,15 @@ def test_fonts_lists_static_fonts_and_urls_are_served():
     res = client.get("/fonts")
     assert res.status_code == 200
     fonts = res.json()
-    labels = [f["label"] for f in fonts]
-    assert labels == ["Supreme Bold", "Supreme Medium", "Supreme Regular"]
-    for font in fonts:
-        assert font["format"] == "woff2"
+    # Der Ordner wächst laufend; daher nur Vollständigkeit prüfen, keine feste Liste.
+    font_files = sorted(
+        (p for p in (STATIC_DIR / "fonts").iterdir() if p.suffix.lower() in {".woff2", ".woff", ".ttf", ".otf"}),
+        key=lambda p: p.name.lower(),
+    )
+    assert len(fonts) == len(font_files) > 0
+    assert {"Supreme Bold", "Supreme Medium", "Supreme Regular"} <= {f["label"] for f in fonts}
+    for font in fonts[:3] + fonts[-3:]:
+        assert font["format"] in {"woff2", "woff", "truetype", "opentype"}
         assert client.get("/" + font["url"]).status_code == 200
 
 
