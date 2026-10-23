@@ -1,3 +1,4 @@
+from enum import Enum
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -26,16 +27,25 @@ HTML_CONTENT = (STATIC_DIR / "index.html").read_text(encoding="utf-8")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-async def read_limited(file: UploadFile) -> bytes:
+class Lang(str, Enum):
+    """Sprache der Fehlermeldungen (Umschalter DE/EN der Navigation)."""
+
+    DE = "de"
+    EN = "en"
+
+
+async def read_limited(file: UploadFile, lang: Lang = Lang.DE) -> bytes:
     data = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="Datei zu groß (max. 10 MB)")
+        detail = "File too large (max. 10 MB)" if lang is Lang.EN else "Datei zu groß (max. 10 MB)"
+        raise HTTPException(status_code=413, detail=detail)
     return data
 
 
-def to_http_error(err: ImageValidationError) -> HTTPException:
+def to_http_error(err: ImageValidationError, lang: Lang = Lang.DE) -> HTTPException:
     status = 415 if isinstance(err, UnsupportedFormatError) else 400
-    return HTTPException(status_code=status, detail=f"Fehler: {err}")
+    prefix = "Error" if lang is Lang.EN else "Fehler"
+    return HTTPException(status_code=status, detail=f"{prefix}: {err.localized(lang.value)}")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -48,14 +58,15 @@ async def convert(
     file: UploadFile = File(...),
     sizes: str | None = Form(None),
     fit: FitMode = Form(FitMode.PAD),
+    lang: Lang = Form(Lang.DE),
 ):
-    data = await read_limited(file)
+    data = await read_limited(file, lang)
     try:
         size_list = parse_sizes(sizes)
         img = await run_in_threadpool(load_image, data)
         ico = await run_in_threadpool(build_ico, img, size_list, fit)
     except ImageValidationError as e:
-        raise to_http_error(e) from None
+        raise to_http_error(e, lang) from None
 
     return Response(
         content=ico,
@@ -69,14 +80,15 @@ async def package(
     file: UploadFile = File(...),
     fit: FitMode = Form(FitMode.PAD),
     app_name: str | None = Form(None),
+    lang: Lang = Form(Lang.DE),
 ):
-    data = await read_limited(file)
+    data = await read_limited(file, lang)
     try:
         name = normalize_app_name(app_name)
         img = await run_in_threadpool(load_image, data)
         archive = await run_in_threadpool(build_package, img, fit, name)
     except ImageValidationError as e:
-        raise to_http_error(e) from None
+        raise to_http_error(e, lang) from None
 
     return Response(
         content=archive,

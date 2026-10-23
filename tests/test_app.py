@@ -141,6 +141,51 @@ def test_convert_too_many_pixels(monkeypatch):
     assert "abmessungen" in res.json()["detail"].lower()
 
 
+def test_error_messages_english_with_lang_en():
+    res = post("/convert", image_bytes(), sizes="999", lang="en")
+    assert res.status_code == 400
+    assert res.json()["detail"].startswith("Error: Size 999 not allowed")
+    res = post("/convert", b"hello world", filename="x.png", lang="en")
+    assert res.json()["detail"] == "Error: File is not a valid image"
+    res = post("/package", image_bytes((40, 10)), app_name="x" * 61, lang="en")
+    assert res.json()["detail"].startswith("Error: App name too long")
+
+
+def test_error_messages_default_german_and_invalid_lang():
+    assert post("/convert", b"").json()["detail"] == "Fehler: Leere Datei"
+    assert post("/convert", b"", lang="de").json()["detail"] == "Fehler: Leere Datei"
+    assert post("/convert", image_bytes(), lang="fr").status_code == 422
+
+
+def test_too_large_upload_english(monkeypatch):
+    monkeypatch.setattr("main.MAX_UPLOAD_BYTES", 100)
+    res = post("/package", image_bytes((256, 256)), lang="en")
+    assert res.status_code == 413
+    assert res.json()["detail"] == "File too large (max. 10 MB)"
+
+
+def test_success_with_lang_en_small_non_square():
+    res = post("/convert", image_bytes((7, 3)), sizes="16,32", lang="en")
+    assert res.status_code == 200
+    assert ico_sizes(res.content) == {(16, 16), (32, 32)}
+
+
+def test_validation_error_localized():
+    err = ImageValidationError("Leere Datei", "Empty file")
+    assert str(err) == "Leere Datei"
+    assert err.localized("en") == "Empty file"
+    assert err.localized("de") == "Leere Datei"
+    assert ImageValidationError("Nur deutsch").localized("en") == "Nur deutsch"
+
+
+def test_index_has_i18n_like_collage_maker():
+    html = client.get("/").text
+    assert "localStorage.getItem('locale')" in html
+    assert "'locale-changed'" in html and ".global-nav-lang-btn" in html
+    assert "Favicon Converter" in html and "Choose a file or drag it here" in html
+    assert "formData.append('lang', locale)" in html
+
+
 # --- /package ------------------------------------------------------------------
 
 def test_package_contents():

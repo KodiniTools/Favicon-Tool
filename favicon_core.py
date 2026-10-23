@@ -23,7 +23,14 @@ class FitMode(str, Enum):
 
 
 class ImageValidationError(ValueError):
-    """Ungültige Eingabe; Nachricht ist für Endnutzer gedacht."""
+    """Ungültige Eingabe; Nachricht ist für Endnutzer gedacht (deutsch, ``en`` = englische Fassung)."""
+
+    def __init__(self, message: str, en: str | None = None):
+        super().__init__(message)
+        self.en = en or message
+
+    def localized(self, lang: str) -> str:
+        return self.en if lang == "en" else str(self)
 
 
 class UnsupportedFormatError(ImageValidationError):
@@ -42,38 +49,43 @@ def parse_sizes(raw: str | None) -> tuple[int, ...]:
         try:
             value = int(part)
         except ValueError:
-            raise ImageValidationError(f"Ungültige Größe: '{part}'") from None
+            raise ImageValidationError(f"Ungültige Größe: '{part}'", f"Invalid size: '{part}'") from None
         if value not in ICO_ALLOWED_SIZES:
             allowed = ", ".join(map(str, ICO_ALLOWED_SIZES))
-            raise ImageValidationError(f"Größe {value} nicht erlaubt (erlaubt: {allowed})")
+            raise ImageValidationError(
+                f"Größe {value} nicht erlaubt (erlaubt: {allowed})", f"Size {value} not allowed (allowed: {allowed})"
+            )
         sizes.add(value)
     if not sizes:
-        raise ImageValidationError("Mindestens eine Größe auswählen")
+        raise ImageValidationError("Mindestens eine Größe auswählen", "Select at least one size")
     return tuple(sorted(sizes))
 
 
 def load_image(data: bytes) -> Image.Image:
     """Validiert die Bytes und liefert das (erste) Bild als RGBA mit korrigierter EXIF-Ausrichtung."""
     if not data:
-        raise ImageValidationError("Leere Datei")
+        raise ImageValidationError("Leere Datei", "Empty file")
     if len(data) > MAX_UPLOAD_BYTES:
-        raise ImageValidationError("Datei zu groß")
+        raise ImageValidationError("Datei zu groß", "File too large")
     try:
         img = Image.open(io.BytesIO(data))  # liest nur den Header
         if img.format not in ALLOWED_FORMATS:
             raise UnsupportedFormatError(
-                f"Format nicht unterstützt: {img.format or 'unbekannt'} (erlaubt: PNG, JPG, WebP, GIF, BMP)"
+                f"Format nicht unterstützt: {img.format or 'unbekannt'} (erlaubt: PNG, JPG, WebP, GIF, BMP)",
+                f"Unsupported format: {img.format or 'unknown'} (allowed: PNG, JPG, WebP, GIF, BMP)",
             )
         width, height = img.size
         if width < 1 or height < 1 or width * height > MAX_PIXELS:
-            raise ImageValidationError("Bildabmessungen zu groß")
+            raise ImageValidationError("Bildabmessungen zu groß", "Image dimensions too large")
         img.load()
     except ImageValidationError:
         raise
     except (UnidentifiedImageError, Image.DecompressionBombError):
-        raise UnsupportedFormatError("Datei ist kein gültiges Bild") from None
+        raise UnsupportedFormatError("Datei ist kein gültiges Bild", "File is not a valid image") from None
     except (OSError, SyntaxError, ValueError):
-        raise ImageValidationError("Bild ist beschädigt oder konnte nicht gelesen werden") from None
+        raise ImageValidationError(
+            "Bild ist beschädigt oder konnte nicht gelesen werden", "Image is corrupted or could not be read"
+        ) from None
 
     img = ImageOps.exif_transpose(img)
     return img.convert("RGBA")
@@ -144,7 +156,9 @@ def build_manifest(app_name: str) -> str:
 def normalize_app_name(raw: str | None) -> str:
     name = (raw or "").strip()
     if len(name) > APP_NAME_MAX_LEN:
-        raise ImageValidationError(f"App-Name zu lang (max. {APP_NAME_MAX_LEN} Zeichen)")
+        raise ImageValidationError(
+            f"App-Name zu lang (max. {APP_NAME_MAX_LEN} Zeichen)", f"App name too long (max. {APP_NAME_MAX_LEN} characters)"
+        )
     return name
 
 
