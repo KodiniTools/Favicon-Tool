@@ -69,6 +69,23 @@ SEO = {
             "und site.webmanifest."
         ),
         "og_locale": "de_DE",
+        "image_alt": "Screenshot des Favicon Konverters von KodiniTools",
+        # Serverseitiger Inhalt in #app (für Crawler ohne JavaScript), Texte wie in src/locales/de.ts
+        "h1": "Favicon Konverter",
+        "intro": (
+            "Lade ein Bild hoch (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) oder gib Text/Emoji ein. Du erhältst "
+            "ein Favicon als ICO, PNG, WebP, GIF, BMP oder SVG oder ein komplettes Favicon-Paket."
+        ),
+        "features_heading": "Funktionen",
+        "features": [
+            "favicon.ico mit mehreren Größen (16 bis 256 px) aus einem Bild oder aus Text/Emoji",
+            "Einzelne Datei als ICO, PNG, WebP, GIF, BMP oder SVG",
+            "Komplettes Favicon-Paket: favicon.ico, Apple-Touch-Icon, Android-Icons (auch maskable), "
+            "site.webmanifest und HTML-Code",
+            "Gestaltung mit Hintergrundfarbe, Innenabstand und Eckenradius, Vorschau im Browser-Tab und auf dem "
+            "Homescreen",
+        ],
+        "noscript": "Bitte JavaScript aktivieren, um den Favicon Konverter zu nutzen.",
     },
     Lang.EN: {
         "title": "Favicon Generator – Create favicon.ico & favicon package | KodiniTools",
@@ -78,12 +95,50 @@ SEO = {
             "site.webmanifest."
         ),
         "og_locale": "en_US",
+        "image_alt": "Screenshot of the KodiniTools favicon converter",
+        # Texte wie in src/locales/en.ts
+        "h1": "Favicon Converter",
+        "intro": (
+            "Upload an image (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) or enter text/emoji. You get a favicon as "
+            "ICO, PNG, WebP, GIF, BMP or SVG, or a complete favicon package."
+        ),
+        "features_heading": "Features",
+        "features": [
+            "favicon.ico with multiple sizes (16 to 256 px) from an image or from text/emoji",
+            "Single file as ICO, PNG, WebP, GIF, BMP or SVG",
+            "Complete favicon package: favicon.ico, Apple touch icon, Android icons (including maskable), "
+            "site.webmanifest and HTML code",
+            "Styling with background colour, padding and corner radius, preview in a browser tab and on the "
+            "home screen",
+        ],
+        "noscript": "Please enable JavaScript to use the favicon converter.",
     },
 }
 
 
 def page_url(lang: Lang) -> str:
     return SITE_URL if lang is Lang.DE else f"{SITE_URL}?lang=en"
+
+
+def image_url(lang: Lang) -> str:
+    """Vorschaubild für Open Graph/Twitter und JSON-LD (Screenshot der Seite, 1920 × 945 px)."""
+    return f"{SITE_URL}static/favicon-landingpage-{lang.value}.webp"
+
+
+def render_content(lang: Lang) -> str:
+    """Crawlbarer Inhalt von #app je Sprache; die Vue-App ersetzt ihn beim Start."""
+    seo = SEO[lang]
+    e = html.escape
+    features = "".join(f"<li>{e(item, quote=False)}</li>" for item in seo["features"])
+    return (
+        '<div class="card">'
+        f"<h1>{e(seo['h1'], quote=False)}</h1>"
+        f"<p>{e(seo['intro'], quote=False)}</p>"
+        f"<h2>{e(seo['features_heading'], quote=False)}</h2>"
+        f"<ul>{features}</ul>"
+        f"<noscript><p>{e(seo['noscript'], quote=False)}</p></noscript>"
+        "</div>"
+    )
 
 
 def render_index(template: str, lang: Lang) -> str:
@@ -101,6 +156,7 @@ def render_index(template: str, lang: Lang) -> str:
             "inLanguage": lang.value,
             "applicationCategory": "DesignApplication",
             "operatingSystem": "Any",
+            "screenshot": image_url(lang),
             "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"},
             "publisher": {"@type": "Organization", "name": "KodiniTools", "url": "https://kodinitools.com/"},
         },
@@ -109,6 +165,7 @@ def render_index(template: str, lang: Lang) -> str:
     head = "\n    ".join(
         [
             f'<meta name="description" content="{e(seo["description"])}">',
+            '<meta name="robots" content="index, follow, max-image-preview:large">',
             f'<link rel="canonical" href="{e(page_url(lang))}">',
             f'<link rel="alternate" hreflang="de" href="{e(page_url(Lang.DE))}">',
             f'<link rel="alternate" hreflang="en" href="{e(page_url(Lang.EN))}">',
@@ -120,18 +177,28 @@ def render_index(template: str, lang: Lang) -> str:
             f'<meta property="og:url" content="{e(page_url(lang))}">',
             f'<meta property="og:locale" content="{seo["og_locale"]}">',
             f'<meta property="og:locale:alternate" content="{SEO[other]["og_locale"]}">',
-            '<meta name="twitter:card" content="summary">',
+            f'<meta property="og:image" content="{e(image_url(lang))}">',
+            '<meta property="og:image:type" content="image/webp">',
+            '<meta property="og:image:width" content="1920">',
+            '<meta property="og:image:height" content="945">',
+            f'<meta property="og:image:alt" content="{e(seo["image_alt"])}">',
+            '<meta name="twitter:card" content="summary_large_image">',
+            f'<meta name="twitter:title" content="{e(seo["title"])}">',
+            f'<meta name="twitter:description" content="{e(seo["description"])}">',
+            f'<meta name="twitter:image" content="{e(image_url(lang))}">',
+            f'<meta name="twitter:image:alt" content="{e(seo["image_alt"])}">',
             f'<script type="application/ld+json">{json_ld}</script>',
         ]
     )
     title_de = f"<title>{e(SEO[Lang.DE]['title'], quote=False)}</title>"
-    for marker in ('<html lang="de">', title_de, "<!--SEO-->"):
+    for marker in ('<html lang="de">', title_de, "<!--SEO-->", "<!--CONTENT-->"):
         if template.count(marker) != 1:
             raise RuntimeError(f"index.html: Platzhalter fehlt oder doppelt: {marker}")
     return (
         template.replace('<html lang="de">', f'<html lang="{lang.value}">')
         .replace(title_de, f"<title>{e(seo['title'], quote=False)}</title>")
         .replace("<!--SEO-->", head)
+        .replace("<!--CONTENT-->", render_content(lang))
     )
 
 
@@ -156,6 +223,28 @@ def to_http_error(err: ImageValidationError, lang: Lang = Lang.DE) -> HTTPExcept
 def index(lang: str | None = Query(None)):
     # Unbekannte Werte führen bewusst nicht zu einem Fehler, sondern zur deutschen Seite
     return HTML_PAGES[Lang.EN if lang == "en" else Lang.DE]
+
+
+def render_sitemap() -> str:
+    """Sitemap der Seite (DE und EN mit hreflang); im robots.txt der Domain einzutragen."""
+    alternates = "".join(
+        f'<xhtml:link rel="alternate" hreflang="{code}" href="{html.escape(page_url(lang))}"/>'
+        for code, lang in (("de", Lang.DE), ("en", Lang.EN), ("x-default", Lang.DE))
+    )
+    urls = "".join(f"<url><loc>{html.escape(page_url(lang))}</loc>{alternates}</url>" for lang in Lang)
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+        f"{urls}</urlset>\n"
+    )
+
+
+SITEMAP_XML = render_sitemap()
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    return Response(SITEMAP_XML, media_type="application/xml")
 
 
 @app.get("/health")
