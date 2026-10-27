@@ -452,6 +452,47 @@ def test_index_hreflang_and_json_ld():
         assert data["inLanguage"] in ("de", "en")
 
 
+def test_index_og_image_twitter_and_robots():
+    for lang in ("de", "en"):
+        h = head(client.get(f"/?lang={lang}").text)
+        image = f"https://kodinitools.com/favicon-tool/static/favicon-landingpage-{lang}.webp"
+        assert f'<meta property="og:image" content="{image}">' in h
+        assert '<meta name="twitter:card" content="summary_large_image">' in h
+        assert f'<meta name="twitter:image" content="{image}">' in h
+        assert '<meta name="robots" content="index, follow, max-image-preview:large">' in h
+        ld = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', h).group(1))
+        assert ld["screenshot"] == image
+        # Bild wird ausgeliefert und passt zu og:image:width/height
+        res = client.get(f"/static/favicon-landingpage-{lang}.webp")
+        assert res.status_code == 200
+        assert Image.open(io.BytesIO(res.content)).size == (1920, 945)
+
+
+def test_index_server_rendered_content_per_language():
+    de = client.get("/").text
+    en = client.get("/?lang=en").text
+    assert "<!--CONTENT-->" not in de and "<!--CONTENT-->" not in en
+    body_de = de[de.index('<main id="app">') : de.index("</main>")]
+    body_en = en[en.index('<main id="app">') : en.index("</main>")]
+    assert "<h1>Favicon Konverter</h1>" in body_de and "<h2>Funktionen</h2>" in body_de
+    assert "<h1>Favicon Converter</h1>" in body_en and "<h2>Features</h2>" in body_en
+    assert "Lade ein Bild hoch" not in body_en
+    assert body_en.count("<li>") == 4
+
+
+def test_sitemap_lists_both_languages_with_hreflang():
+    res = client.get("/sitemap.xml")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("application/xml")
+    ns = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9", "x": "http://www.w3.org/1999/xhtml"}
+    root = ET.fromstring(res.content)
+    locs = [el.text for el in root.findall("s:url/s:loc", ns)]
+    assert locs == ["https://kodinitools.com/favicon-tool/", "https://kodinitools.com/favicon-tool/?lang=en"]
+    for url in root.findall("s:url", ns):
+        links = {link.get("hreflang"): link.get("href") for link in url.findall("x:link", ns)}
+        assert links == {"de": locs[0], "en": locs[1], "x-default": locs[0]}
+
+
 def test_render_index_requires_placeholders():
     import main
 

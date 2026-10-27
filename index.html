@@ -32,12 +32,9 @@
 <body>
     <!--#include virtual="/partials/nav.html" -->
     <main id="app">
-        <!-- Inhalt ohne JavaScript und für Suchmaschinen; die Vue-App (src/App.vue) ersetzt ihn beim Start -->
-        <div class="card">
-            <h1>Favicon Konverter</h1>
-            <p>Lade ein Bild hoch (PNG, JPG, WebP, GIF, BMP, SVG – max. 10&nbsp;MB) oder gib Text/Emoji ein. Du erhältst ein Favicon als ICO, PNG, WebP, GIF, BMP oder SVG oder ein komplettes Favicon-Paket.</p>
-            <noscript><p>Bitte JavaScript aktivieren, um den Favicon Konverter zu nutzen.</p></noscript>
-        </div>
+        <!-- Inhalt ohne JavaScript und für Suchmaschinen, vom Server je Sprache eingesetzt (main.py, render_index);
+             die Vue-App (src/App.vue) ersetzt ihn beim Start -->
+        <!--CONTENT-->
     </main>
     <!--#include virtual="/partials/footer.html" -->
     <!--#include virtual="/partials/cookie-banner.html" -->
