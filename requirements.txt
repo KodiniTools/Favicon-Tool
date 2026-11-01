@@ -1,6 +1,6 @@
 # Direkte Abhängigkeiten, exakt gepinnt (getestet mit Python 3.10–3.13).
 # Updates bewusst per PR (Dependabot), damit CI vor dem Deploy prüft.
-fastapi==0.161.1
+fastapi==0.162.0
 python-multipart==0.0.32
 # Pillow 13 setzt Python >= 3.11 voraus; ältere Server (3.10) erhalten 12.3.0
 pillow==13.0.0; python_version >= "3.11"
