@@ -2,7 +2,7 @@ import type de from './de'
 
 // Texte der Seite (Englisch); gleiche Schlüssel wie de.ts (vom Typ erzwungen)
 const en: Record<keyof typeof de, string> = {
-  pageTitle: "Favicon Generator – Create favicon.ico & favicon package {'|'} KodiniTools",
+  pageTitle: "Favicon Generator – favicon.ico & Favicon Package {'|'} KodiniTools",
   title: 'Favicon Converter',
   intro:
     'Upload an image (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) or enter text/emoji. You get a favicon as ICO, PNG, WebP, GIF, BMP or SVG, or a complete favicon package.',

@@ -424,8 +424,8 @@ def test_index_seo_german_default():
     for url in ("/", "/?lang=de", "/?lang=fr"):
         h = head(client.get(url).text)
         assert '<html lang="de">' in h
-        assert "<title>Favicon Generator – favicon.ico &amp; Favicon-Paket erstellen | KodiniTools</title>" in h
-        assert '<meta name="description" content="Kostenloser Favicon Generator' in h
+        assert "<title>Favicon erstellen – favicon.ico &amp; Favicon-Paket | KodiniTools</title>" in h
+        assert '<meta name="description" content="Favicon erstellen, kostenlos:' in h
         assert '<link rel="canonical" href="https://kodinitools.com/favicon-tool/">' in h
         assert '<meta property="og:locale" content="de_DE">' in h
         assert "<!--SEO-->" not in h
@@ -434,7 +434,7 @@ def test_index_seo_german_default():
 def test_index_seo_english():
     h = head(client.get("/?lang=en").text)
     assert '<html lang="en">' in h
-    assert "<title>Favicon Generator – Create favicon.ico &amp; favicon package | KodiniTools</title>" in h
+    assert "<title>Favicon Generator – favicon.ico &amp; Favicon Package | KodiniTools</title>" in h
     assert '<meta name="description" content="Free favicon generator' in h
     assert '<link rel="canonical" href="https://kodinitools.com/favicon-tool/?lang=en">' in h
     assert '<meta property="og:locale" content="en_US">' in h

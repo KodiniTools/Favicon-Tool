@@ -62,11 +62,10 @@ SITE_URL = os.environ.get("SITE_URL", "https://kodinitools.com/favicon-tool/")
 
 SEO = {
     Lang.DE: {
-        "title": "Favicon Generator – favicon.ico & Favicon-Paket erstellen | KodiniTools",
+        "title": "Favicon erstellen – favicon.ico & Favicon-Paket | KodiniTools",
         "description": (
-            "Kostenloser Favicon Generator: Erstelle aus PNG, JPG, WebP, GIF, BMP oder SVG ein Favicon als ICO, "
-            "PNG, WebP, GIF, BMP oder SVG oder ein komplettes Favicon-Paket mit Apple-Touch-Icon, Android-Icons "
-            "und site.webmanifest."
+            "Favicon erstellen, kostenlos: aus PNG, JPG, WebP, GIF, BMP oder SVG ein favicon.ico oder ein "
+            "komplettes Paket mit Apple-Touch-Icon, Android-Icons und Webmanifest."
         ),
         "og_locale": "de_DE",
         "image_alt": "Screenshot des Favicon Konverters von KodiniTools",
@@ -88,11 +87,10 @@ SEO = {
         "noscript": "Bitte JavaScript aktivieren, um den Favicon Konverter zu nutzen.",
     },
     Lang.EN: {
-        "title": "Favicon Generator – Create favicon.ico & favicon package | KodiniTools",
+        "title": "Favicon Generator – favicon.ico & Favicon Package | KodiniTools",
         "description": (
-            "Free favicon generator: turn a PNG, JPG, WebP, GIF, BMP or SVG into a favicon as ICO, PNG, WebP, "
-            "GIF, BMP or SVG, or a complete favicon package with Apple touch icon, Android icons and "
-            "site.webmanifest."
+            "Free favicon generator: turn a PNG, JPG, WebP, GIF, BMP or SVG into a favicon.ico or a complete "
+            "package with Apple touch icon, Android icons and web manifest."
         ),
         "og_locale": "en_US",
         "image_alt": "Screenshot of the KodiniTools favicon converter",

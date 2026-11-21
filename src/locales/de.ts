@@ -1,7 +1,7 @@
 // Texte der Seite (Deutsch). Platzhalter in {…} setzt vue-i18n ein; HTML steht nie in den Texten.
 // Sonderzeichen von vue-i18n (| @ { }) als Literal schreiben, z. B. {'|'}.
 export default {
-  pageTitle: "Favicon Generator – favicon.ico & Favicon-Paket erstellen {'|'} KodiniTools",
+  pageTitle: "Favicon erstellen – favicon.ico & Favicon-Paket {'|'} KodiniTools",
   title: 'Favicon Konverter',
   intro:
     'Lade ein Bild hoch (PNG, JPG, WebP, GIF, BMP, SVG – max. 10 MB) oder gib Text/Emoji ein. Du erhältst ein Favicon als ICO, PNG, WebP, GIF, BMP oder SVG oder ein komplettes Favicon-Paket.',
