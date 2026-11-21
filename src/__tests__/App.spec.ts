@@ -126,7 +126,7 @@ describe('App', () => {
     await flushPromises()
     expect(wrapper.find('#status').text()).toBe('Bitte zuerst eine Datei auswählen.')
     expect(document.title).toBe(
-      'Favicon Generator – favicon.ico & Favicon-Paket erstellen | KodiniTools'
+      'Favicon erstellen – favicon.ico & Favicon-Paket | KodiniTools'
     )
 
     window.dispatchEvent(new CustomEvent('locale-changed', { detail: { locale: 'en' } }))
@@ -135,7 +135,7 @@ describe('App', () => {
     expect(wrapper.find('#status').text()).toBe('Please choose a file first.')
     expect(document.documentElement.getAttribute('lang')).toBe('en')
     expect(document.title).toBe(
-      'Favicon Generator – Create favicon.ico & favicon package | KodiniTools'
+      'Favicon Generator – favicon.ico & Favicon Package | KodiniTools'
     )
     expect(localStorage.getItem('locale')).toBe('en')
 
