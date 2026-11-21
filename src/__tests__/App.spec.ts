@@ -125,18 +125,14 @@ describe('App', () => {
     store.setStatusKey('noFile', 'danger')
     await flushPromises()
     expect(wrapper.find('#status').text()).toBe('Bitte zuerst eine Datei auswählen.')
-    expect(document.title).toBe(
-      'Favicon erstellen – favicon.ico & Favicon-Paket | KodiniTools'
-    )
+    expect(document.title).toBe('Favicon erstellen – favicon.ico & Favicon-Paket | KodiniTools')
 
     window.dispatchEvent(new CustomEvent('locale-changed', { detail: { locale: 'en' } }))
     await flushPromises()
     expect(wrapper.find('h1').text()).toBe('Favicon Converter')
     expect(wrapper.find('#status').text()).toBe('Please choose a file first.')
     expect(document.documentElement.getAttribute('lang')).toBe('en')
-    expect(document.title).toBe(
-      'Favicon Generator – favicon.ico & Favicon Package | KodiniTools'
-    )
+    expect(document.title).toBe('Favicon Generator – favicon.ico & Favicon Package | KodiniTools')
     expect(localStorage.getItem('locale')).toBe('en')
 
     // Unbekannte Sprache wird ignoriert
