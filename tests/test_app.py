@@ -842,3 +842,13 @@ def test_buttons_and_active_language_dark_gold():
     lang = css.split(".global-nav-lang-btn.active*{", 1)[1].split("}", 1)[0]
     assert "background-color:var(--favicon-gold)!important" in lang
     assert "color:var(--favicon-on-gold)!important" in lang
+
+
+def test_live_preview_three_groups_stage4():
+    js = index_asset("js")
+    for text in ("Live-Vorschau", "Originalgrössen", "Browser-Tabs", "Startbildschirm", "Actual sizes", "Home screen"):
+        assert text in js
+    css = index_asset("css").replace(" ", "")
+    # Breit nebeneinander (Grid ab 760 px), schmal untereinander; Schachbrett für Transparenz
+    assert re.search(r"@media\(min-width:760px\)\{\.preview-groups\[data-v-[0-9a-f]+\]\{grid-template-columns:", css)
+    assert "repeating-conic-gradient(" in css

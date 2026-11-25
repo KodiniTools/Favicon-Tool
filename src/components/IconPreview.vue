@@ -39,69 +39,52 @@
 </script>
 
 <template>
-  <div v-show="visible" id="preview">
-    <figure v-for="size in PREVIEW_SIZES" :key="size">
-      <canvas :id="'pv' + size" ref="previews" :width="size" :height="size"></canvas>
-      <figcaption>{{ size }}</figcaption>
-    </figure>
-  </div>
+  <section v-show="visible" class="icon-preview" aria-labelledby="icon-preview-title">
+    <h2 id="icon-preview-title">{{ t('previewHeading') }}</h2>
+    <div class="preview-groups">
+      <section class="preview-group" aria-labelledby="preview-sizes-title">
+        <h3 id="preview-sizes-title">{{ t('previewSizes') }}</h3>
+        <div id="preview">
+          <figure v-for="size in PREVIEW_SIZES" :key="size">
+            <div class="pixel-frame">
+              <canvas :id="'pv' + size" ref="previews" :width="size" :height="size"></canvas>
+            </div>
+            <figcaption>{{ size }} px</figcaption>
+          </figure>
+        </div>
+      </section>
 
-  <!-- So sieht das Icon im Einsatz aus (gezeichnet wie auf dem Server) -->
-  <div v-show="visible" id="mockups">
-    <figure>
-      <canvas id="mkTabLight" ref="tabLight" width="220" height="40"></canvas>
-      <figcaption>{{ t('mockTabLight') }}</figcaption>
-    </figure>
-    <figure>
-      <canvas id="mkTabDark" ref="tabDark" width="220" height="40"></canvas>
-      <figcaption>{{ t('mockTabDark') }}</figcaption>
-    </figure>
-    <figure>
-      <canvas id="mkIos" ref="ios" width="60" height="60"></canvas>
-      <figcaption>iOS</figcaption>
-    </figure>
-    <figure>
-      <canvas id="mkAndroid" ref="android" width="60" height="60"></canvas>
-      <figcaption>Android</figcaption>
-    </figure>
-  </div>
+      <div id="mockups">
+        <section class="preview-group" aria-labelledby="preview-tabs-title">
+          <h3 id="preview-tabs-title">{{ t('previewTabs') }}</h3>
+          <div class="preview-tabs">
+            <figure>
+              <canvas id="mkTabLight" ref="tabLight" width="220" height="40"></canvas>
+              <figcaption>{{ t('mockTabLight') }}</figcaption>
+            </figure>
+            <figure>
+              <canvas id="mkTabDark" ref="tabDark" width="220" height="40"></canvas>
+              <figcaption>{{ t('mockTabDark') }}</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="preview-group" aria-labelledby="preview-home-title">
+          <h3 id="preview-home-title">{{ t('previewHome') }}</h3>
+          <div class="preview-home">
+            <figure>
+              <canvas id="mkIos" ref="ios" width="60" height="60"></canvas>
+              <figcaption>iOS</figcaption>
+            </figure>
+            <figure>
+              <canvas id="mkAndroid" ref="android" width="60" height="60"></canvas>
+              <figcaption>Android</figcaption>
+            </figure>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
 </template>
 
-<style scoped>
-  #preview,
-  #mockups {
-    display: flex;
-    margin-top: var(--ds-space-5);
-    justify-content: center;
-    align-items: flex-end;
-  }
-  #preview {
-    gap: var(--ds-space-4);
-  }
-  #mockups {
-    gap: var(--ds-space-4);
-    flex-wrap: wrap;
-  }
-  figure {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--ds-space-1);
-  }
-  figcaption {
-    font-size: var(--ds-text-xs);
-    color: var(--ds-text-3);
-  }
-  #mockups canvas {
-    border-radius: var(--ds-radius-sm);
-  }
-  #preview canvas {
-    /* Schachbrett zur Darstellung von Transparenz */
-    background: repeating-conic-gradient(var(--ds-surface-3) 0% 25%, var(--ds-surface-1) 0% 50%) 0
-      0 / 8px 8px;
-    image-rendering: pixelated;
-    border: var(--ds-border-width) solid var(--ds-border);
-    border-radius: 2px;
-  }
-</style>
+<style scoped src="../styles/stage4-preview.css"></style>
