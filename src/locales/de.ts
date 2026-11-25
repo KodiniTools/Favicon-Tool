@@ -40,6 +40,8 @@ export default {
   bgLabel: 'Hintergrundfarbe',
   paddingLabel: 'Innenabstand',
   radiusLabel: 'Eckenradius',
+  reset: 'Zurücksetzen',
+  resetLabel: '{name} zurücksetzen',
   packageLegend: 'Paket-Optionen',
   singleHeading: 'Einzelne Datei',
   packageHeading: 'Komplettes Favicon-Paket (ZIP)',
