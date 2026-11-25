@@ -2,12 +2,17 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { createAppI18n } from './i18n'
+import { connectToolTheme } from './lib/toolTheme'
 import { translateNav } from './lib/nav'
 // Design-Tokens v2 (--ds-*), Kopie aus KodiniTools/Collage-Maker src/design-system/tokens-v2.css
 import '../static/design-system/tokens-v2.css'
 import './styles/base.css'
 import './styles/controls.css'
 import './styles/stage1.css'
+import './styles/stage2-header.css'
+
+const theme = document.querySelector<HTMLSelectElement>('#favicon-theme')
+connectToolTheme(theme)
 
 const view = document.getElementById('favicon-view')
 const landing = view?.querySelector<HTMLElement>('.favicon-landing')
@@ -25,6 +30,14 @@ function updateLanguage() {
     url.searchParams.set('lang', lang)
     location.replace(url.href)
     return
+  }
+  const themeLabel = document.querySelector('[data-favicon-theme-label]')
+  if (theme && themeLabel) {
+    themeLabel.textContent = lang === 'en' ? 'Theme' : 'Design'
+    const labels = lang === 'en' ? ['System', 'Light', 'Dark'] : ['System', 'Hell', 'Dunkel']
+    for (const [index, option] of Array.from(theme.options).entries()) {
+      option.textContent = labels[index] ?? option.textContent
+    }
   }
   if (overviewLink && editorLink) {
     overviewLink.href = `./?lang=${lang}`

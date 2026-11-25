@@ -1,5 +1,5 @@
 // Verbindung zu den SSI-Partials (Navigation, Footer, Cookie-Banner) außerhalb von #app:
-// Theme-Wechsel übernehmen und Sprache in beide Richtungen synchronisieren.
+// Sprache in beide Richtungen synchronisieren.
 import { onBeforeUnmount, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { isLocale, type Locale } from '@/i18n'
@@ -11,13 +11,6 @@ function storageSet(key: string, value: string): void {
   } catch {
     // Storage gesperrt
   }
-}
-
-/** Theme der Navigation (html[data-theme]) übernehmen: body.light-theme für Token-Parität, Auswahl merken. */
-function syncTheme(): void {
-  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
-  document.body.classList.toggle('light-theme', theme === 'light')
-  storageSet('theme', theme)
 }
 
 export function useGlobalChrome() {
@@ -54,16 +47,10 @@ export function useGlobalChrome() {
   const onStorage = (e: StorageEvent) => {
     if (e.key === 'locale' && e.newValue) setLocale(e.newValue)
   }
-  const themeObserver = new MutationObserver(syncTheme)
 
   watch(locale, (next) => applyLocale(next as Locale))
 
   onMounted(() => {
-    syncTheme()
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    })
     window.addEventListener('locale-changed', onLocaleChanged)
     document.addEventListener('click', onDocumentClick)
     window.addEventListener('storage', onStorage)
@@ -71,7 +58,6 @@ export function useGlobalChrome() {
   })
 
   onBeforeUnmount(() => {
-    themeObserver.disconnect()
     window.removeEventListener('locale-changed', onLocaleChanged)
     document.removeEventListener('click', onDocumentClick)
     window.removeEventListener('storage', onStorage)

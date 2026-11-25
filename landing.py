@@ -9,6 +9,7 @@ HERO_PATH = "static/favicon-hero.webp"
 COPY = {
     "de": {
         "nav": ("Favicon Tool", "Übersicht", "Favicon-Editor"),
+        "theme": ("Design", "System", "Hell", "Dunkel"),
         "lead": "Ein Icon für Browser-Tabs, Lesezeichen und Startbildschirme.",
         "intro": "Erstellen Sie Ihr Favicon aus einem Bild, kurzem Text oder einem Emoji. Laden Sie eine einzelne "
         "Datei oder ein vollständiges Paket für Ihre Website herunter.",
@@ -39,6 +40,7 @@ COPY = {
     },
     "en": {
         "nav": ("Favicon Tool", "Overview", "Favicon editor"),
+        "theme": ("Theme", "System", "Light", "Dark"),
         "lead": "An icon for browser tabs, bookmarks and home screens.",
         "intro": "Create a favicon from an image, short text or an emoji. Download a single file or a "
         "complete package for your website.",
@@ -68,12 +70,17 @@ COPY = {
 
 def render_navigation(lang: str, editor: bool) -> str:
     name, overview, tool = COPY[lang]["nav"]
+    design, system, light, dark = COPY[lang]["theme"]
     current = ' aria-current="page"'
     return (
-        f'<nav class="favicon-nav" aria-label="{escape(name)}"><div class="favicon-wrap">'
+        '<header class="favicon-header"><div class="favicon-wrap favicon-header-inner">'
+        f'<nav class="favicon-nav" aria-label="{escape(name)}">'
         f'<a data-favicon-link="overview" href="./?lang={lang}"{"" if editor else current}>{escape(overview)}</a>'
         f'<a data-favicon-link="editor" href="./app?lang={lang}"{current if editor else ""}>{escape(tool)}</a>'
-        "</div></nav>"
+        '</nav><label class="favicon-theme" hidden><span data-favicon-theme-label>'
+        f'{escape(design)}</span><select id="favicon-theme">'
+        f'<option value="auto">{escape(system)}</option><option value="light">{escape(light)}</option>'
+        f'<option value="dark">{escape(dark)}</option></select></label></div></header>'
     )
 
 

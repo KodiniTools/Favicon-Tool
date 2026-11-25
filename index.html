@@ -8,14 +8,19 @@
     <!--SEO-->
     <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0a1324" media="(prefers-color-scheme: dark)">
-    <!-- Theme und Sprache vor dem ersten Paint setzen (Tokens: Dark auf :root, Light über data-theme),
-         wie im Collage Maker. Standard ist Light. -->
+    <!-- Theme und Sprache vor dem ersten Paint setzen. -->
     <script>
-        try {
-            document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
-        } catch (e) {
-            document.documentElement.setAttribute('data-theme', 'light');
-        }
+        (function () {
+            var theme = 'light';
+            try {
+                if (localStorage.getItem('favicon-theme-mode') === 'auto' && window.matchMedia) {
+                    theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                } else if (localStorage.getItem('theme') === 'dark') {
+                    theme = 'dark';
+                }
+            } catch (e) { /* Storage gesperrt */ }
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
         // ?lang=de|en (Links/hreflang) hat Vorrang, sonst localStorage-Key 'locale' wie im Collage Maker;
         // ohne beides gilt die vom Server gesetzte Sprache. Die Vue-App startet in dieser Sprache.
         (function () {
