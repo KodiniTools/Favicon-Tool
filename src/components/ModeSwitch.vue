@@ -53,13 +53,13 @@
     background: var(--ds-surface-2);
   }
   .mode label:has(input:checked) {
-    border-color: var(--ds-accent);
-    background: var(--ds-accent);
-    color: var(--ds-on-accent);
+    border-color: var(--favicon-gold);
+    background: var(--favicon-gold);
+    color: var(--favicon-on-gold);
     box-shadow: var(--ds-shadow-overlay);
   }
   .mode input {
-    accent-color: var(--ds-on-accent);
+    accent-color: var(--favicon-on-gold);
   }
   .mode label:focus-within {
     box-shadow: var(--ds-focus-ring);

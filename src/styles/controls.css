@@ -103,8 +103,8 @@
 :where(#app) button {
   flex: 1;
   min-height: var(--ds-control-lg);
-  background: var(--ds-accent);
-  color: var(--ds-on-accent);
+  background: var(--favicon-gold);
+  color: var(--favicon-on-gold);
   border: var(--ds-border-width) solid transparent;
   padding: var(--ds-space-3);
   border-radius: var(--ds-radius-md);
@@ -117,16 +117,7 @@
     border-color var(--ds-duration) var(--ds-ease);
 }
 :where(#app) button:hover {
-  background: var(--ds-accent-hover);
-}
-:where(#app) button.secondary {
-  background: var(--ds-surface-2);
-  color: var(--ds-text);
-  border-color: var(--ds-border-strong);
-}
-:where(#app) button.secondary:hover {
-  background: var(--ds-surface-3);
-  border-color: var(--ds-accent);
+  background: var(--favicon-gold-hover);
 }
 :where(#app) button:disabled {
   opacity: 0.6;

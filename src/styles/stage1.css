@@ -1,3 +1,11 @@
+/* Dunkelgold für alle Buttons und die aktive Sprache, in Hell und Dunkel gleich (weisse Schrift, Kontrast > 7:1).
+   Auf :root, weil auch die globale Navigation ausserhalb von #app sie nutzt. */
+:root {
+  --favicon-gold: #755020;
+  --favicon-gold-hover: #5c3e17;
+  --favicon-on-gold: #ffffff;
+}
+
 #app {
   --ds-weight-medium: 400;
   --ds-weight-semibold: 400;
@@ -5,7 +13,6 @@
   --favicon-glow: #15384e;
   --favicon-panel: #13283e;
   --favicon-heading: #e8c783;
-  --favicon-gold: #755020;
   display: block;
   padding: 0 0 clamp(2rem, 5vw, 4rem);
   font-family: Supreme, system-ui, sans-serif;
@@ -66,8 +73,12 @@
   padding: 0.65rem 1.15rem;
   border-radius: var(--ds-radius-md);
   background: var(--favicon-gold);
-  color: #fff;
+  color: var(--favicon-on-gold);
   text-decoration: none;
+}
+
+.favicon-launch:hover {
+  background: var(--favicon-gold-hover);
 }
 
 .favicon-section {
