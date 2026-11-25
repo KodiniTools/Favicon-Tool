@@ -1,0 +1,168 @@
+#app {
+  --ds-weight-medium: 400;
+  --ds-weight-semibold: 400;
+  --ds-weight-bold: 400;
+  --favicon-glow: #15384e;
+  --favicon-panel: #13283e;
+  --favicon-heading: #e8c783;
+  --favicon-gold: #755020;
+  display: block;
+  padding: 0 0 clamp(2rem, 5vw, 4rem);
+  font-family: Supreme, system-ui, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+  background: radial-gradient(ellipse at 70% 0, var(--favicon-glow), transparent 68%) no-repeat;
+  background-size: 100% 42rem;
+}
+
+:root[data-theme='light'] #app {
+  --favicon-glow: #dcebf4;
+  --favicon-panel: #eaf2f7;
+  --favicon-heading: #73501b;
+}
+
+.favicon-wrap {
+  width: min(1160px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.favicon-nav {
+  border-block: 1px solid var(--ds-border);
+  background: var(--ds-surface-1);
+}
+
+.favicon-nav .favicon-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-block: 0.5rem;
+}
+
+.favicon-nav a {
+  padding: 0.4rem 0.8rem;
+  color: var(--ds-text);
+  border-radius: var(--ds-radius-sm);
+  text-decoration: none;
+}
+
+.favicon-nav a[aria-current='page'] {
+  color: var(--favicon-heading);
+  background: var(--favicon-panel);
+  box-shadow: inset 0 -2px var(--favicon-heading);
+}
+
+.favicon-nav a:focus-visible,
+.favicon-launch:focus-visible,
+.favicon-landing summary:focus-visible {
+  outline: 2px solid var(--favicon-heading);
+  outline-offset: 3px;
+}
+
+.favicon-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  padding-block: clamp(2.5rem, 7vw, 6rem) clamp(2rem, 5vw, 4rem);
+}
+
+#app .favicon-hero h1 {
+  font-size: clamp(2.6rem, 6vw, 4.5rem);
+  line-height: 1.05;
+}
+
+#app .favicon-lead {
+  color: var(--favicon-heading);
+  font-size: var(--ds-text-lg);
+  margin-bottom: 0.75rem;
+}
+
+.favicon-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border-radius: var(--ds-radius-lg);
+  box-shadow: 0 12px 32px #03101c33;
+}
+
+.favicon-launch {
+  display: inline-block;
+  padding: 0.65rem 1.15rem;
+  border-radius: var(--ds-radius-md);
+  background: var(--favicon-gold);
+  color: #fff;
+  text-decoration: none;
+}
+
+.favicon-section {
+  padding-block: 1rem 2rem;
+}
+
+.favicon-landing h2,
+.favicon-landing h3 {
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.favicon-landing h2 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+}
+
+.favicon-landing h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.favicon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.favicon-panel,
+#app .card {
+  background: linear-gradient(145deg, var(--ds-surface-1), var(--favicon-panel));
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+}
+
+.favicon-panel {
+  padding: 1.25rem;
+}
+
+.favicon-panel p:last-child {
+  margin-bottom: 0;
+}
+
+.favicon-panel details,
+.favicon-panel summary {
+  cursor: pointer;
+}
+
+.favicon-panel + .favicon-panel {
+  margin-top: 0.6rem;
+}
+
+.favicon-grid .favicon-panel {
+  margin-top: 0;
+}
+
+details.favicon-panel p {
+  margin-top: 0.75rem;
+}
+
+#app .card {
+  width: min(960px, calc(100% - 2rem));
+  max-width: none;
+  margin: clamp(1.5rem, 5vw, 3rem) auto 0;
+}
+
+@media (max-width: 760px) {
+  .favicon-hero,
+  .favicon-grid {
+    grid-template-columns: 1fr;
+  }
+}
