@@ -28,15 +28,21 @@ export function connectToolTheme(select: HTMLSelectElement | null): void {
   let mode: ThemeMode = readSetting(MODE_KEY) === 'auto' ? 'auto' : currentTheme()
   let applied: Theme = currentTheme()
 
-  function apply(next: ThemeMode): void {
+  /**
+   * Theme anwenden. `persist = false` bei Änderungen aus einem anderen Tab: dann nur übernehmen,
+   * nicht zurückschreiben (sonst überschreibt der Tab die Auswahl des anderen, z. B. „System“).
+   */
+  function apply(next: ThemeMode, persist = true): void {
     mode = next
     applied = mode === 'auto' ? (system?.matches ? 'dark' : 'light') : mode
     root.dataset.theme = applied
     document.body.classList.toggle('light-theme', applied === 'light')
     if (select) select.value = mode
+    if (!persist) return
+    // Modus zuerst, damit andere Tabs beim Theme-Event schon den neuen Modus lesen.
+    saveSetting(MODE_KEY, mode === 'auto' ? 'auto' : null)
     // Die globale Navigation nutzt den aufgelösten Hell-/Dunkelwert.
     saveSetting(THEME_KEY, applied)
-    saveSetting(MODE_KEY, mode === 'auto' ? 'auto' : null)
   }
 
   apply(mode)
@@ -57,7 +63,7 @@ export function connectToolTheme(select: HTMLSelectElement | null): void {
   window.addEventListener('storage', (event) => {
     if (event.key !== THEME_KEY && event.key !== MODE_KEY) return
     const saved = readSetting(THEME_KEY)
-    if (readSetting(MODE_KEY) === 'auto') apply('auto')
-    else if (saved === 'light' || saved === 'dark') apply(saved)
+    if (readSetting(MODE_KEY) === 'auto') apply('auto', false)
+    else if (saved === 'light' || saved === 'dark') apply(saved, false)
   })
 }

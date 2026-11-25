@@ -2,6 +2,8 @@
    Spezifität niedrig), damit sie nicht in die SSI-Partials (Footer, Cookie-Banner, Nav) durchschlagen. */
 
 :where(#app) fieldset {
+  /* Fieldsets sind sonst mindestens min-content breit und ragen in schmalen Spalten aus dem Panel */
+  min-width: 0;
   border: var(--ds-border-width) solid var(--ds-border);
   border-radius: var(--ds-radius-lg);
   background: var(--ds-surface-1);
