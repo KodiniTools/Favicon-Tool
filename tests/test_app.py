@@ -859,3 +859,13 @@ def test_fieldsets_shrink_in_narrow_columns_stage5():
     css = index_asset("css").replace(" ", "")
     block = css.split(":where(#app)fieldset{", 1)[1].split("}", 1)[0]
     assert "min-width:0" in block
+
+
+def test_slider_spinner_and_reset_buttons():
+    js = index_asset("js")
+    for text in ("Zurücksetzen", "{name} zurücksetzen", "Reset {name}"):
+        assert text in js
+    assert "paddingNum" in js or "Num" in js
+    css = index_asset("css").replace(" ", "")
+    # Regler kürzer: eigene Spalten für Zahlenfeld und Zurücksetzen-Knopf
+    assert ":where(#app).field.slider{grid-template-columns:minmax(7rem,11rem)minmax(0,1fr)autoauto" in css

@@ -41,6 +41,8 @@ const en: Record<keyof typeof de, string> = {
   bgLabel: 'Background color',
   paddingLabel: 'Padding',
   radiusLabel: 'Corner radius',
+  reset: 'Reset',
+  resetLabel: 'Reset {name}',
   packageLegend: 'Package options',
   singleHeading: 'Single file',
   packageHeading: 'Complete favicon package (ZIP)',

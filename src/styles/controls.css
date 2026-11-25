@@ -96,6 +96,9 @@
   color: var(--ds-text-2);
   text-align: right;
 }
+:where(#app) .field.slider {
+  grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr) auto auto;
+}
 :where(#app) .field.stack {
   grid-template-columns: 1fr;
   gap: var(--ds-space-1);
@@ -136,6 +139,9 @@
   :where(#app) .field > :first-child {
     grid-column: 1 / -1;
   }
+  :where(#app) .field.slider {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
   :where(#app) .field > span:empty {
     display: none;
   }
@@ -151,5 +157,14 @@
   }
   :where(#app) .options label {
     min-height: var(--ds-control-sm);
+  }
+}
+/* Sehr schmal: Regler in voller Breite, Zahlenfeld und Zurücksetzen darunter */
+@media (max-width: 420px) {
+  :where(#app) .field.slider {
+    grid-template-columns: auto auto 1fr;
+  }
+  :where(#app) .field.slider > input[type='range'] {
+    grid-column: 1 / -1;
   }
 }
