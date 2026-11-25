@@ -1,0 +1,68 @@
+.favicon-header {
+  border-block: 1px solid var(--ds-border);
+  background: linear-gradient(110deg, var(--ds-surface-1), var(--favicon-panel));
+}
+
+.favicon-header-inner,
+.favicon-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.favicon-header-inner {
+  min-height: 64px;
+  justify-content: space-between;
+  padding-block: 0.55rem;
+}
+
+.favicon-nav {
+  min-width: 0;
+}
+
+.favicon-nav a,
+.favicon-theme select {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text);
+  font: inherit;
+}
+
+.favicon-nav a {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.favicon-nav a:hover,
+.favicon-nav a[aria-current='page'] {
+  border-color: var(--ds-border);
+  background: var(--ds-surface-1);
+  color: var(--favicon-heading);
+}
+
+.favicon-nav a[aria-current='page'] {
+  box-shadow: inset 0 -2px var(--favicon-heading);
+}
+
+.favicon-theme:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--ds-text-2);
+}
+
+.favicon-theme select {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-1);
+  cursor: pointer;
+}
+
+.favicon-nav a:focus-visible,
+.favicon-theme select:focus-visible {
+  outline: 2px solid var(--favicon-heading);
+  outline-offset: 2px;
+}

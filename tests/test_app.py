@@ -791,6 +791,10 @@ def test_landing_and_editor_navigation_and_hero():
     assert '<a data-favicon-link="overview" href="./?lang=en" aria-current="page">' in landing.text
     assert 'href="./app?lang=en"' in landing.text
     assert 'width="1600" height="900"' in landing.text
+    assert '<header class="favicon-header">' in landing.text
+    assert '<label class="favicon-theme" hidden>' in landing.text
+    assert '<option value="light">Light</option>' in landing.text
+    assert '<option value="light">Hell</option>' in client.get("/").text
     image = client.get("/static/favicon-hero.webp")
     assert image.status_code == 200
     assert Image.open(io.BytesIO(image.content)).size == (1600, 900)
@@ -799,6 +803,8 @@ def test_landing_and_editor_navigation_and_hero():
     assert editor.status_code == 200
     assert '<a data-favicon-link="editor" href="./app?lang=en" aria-current="page">' in editor.text
     assert 'id="favicon-view"' in editor.text
+    assert '<header class="favicon-header">' in editor.text
+    assert '<select id="favicon-theme">' in editor.text
     assert 'class="favicon-landing' not in editor.text
     assert client.get("/app/?lang=en", follow_redirects=False).headers["location"] == "../app?lang=en"
 
