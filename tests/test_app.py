@@ -852,3 +852,10 @@ def test_live_preview_three_groups_stage4():
     # Breit nebeneinander (Grid ab 760 px), schmal untereinander; Schachbrett für Transparenz
     assert re.search(r"@media\(min-width:760px\)\{\.preview-groups\[data-v-[0-9a-f]+\]\{grid-template-columns:", css)
     assert "repeating-conic-gradient(" in css
+
+
+def test_fieldsets_shrink_in_narrow_columns_stage5():
+    # Fieldsets sind per Browser-Default min-content breit und ragten bei 768 px aus dem Paket-Panel
+    css = index_asset("css").replace(" ", "")
+    block = css.split(":where(#app)fieldset{", 1)[1].split("}", 1)[0]
+    assert "min-width:0" in block
