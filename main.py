@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from favicon_core import (
@@ -26,6 +26,7 @@ from favicon_core import (
     parse_style,
     validate_svg,
 )
+from landing import render_landing, render_navigation
 
 app = FastAPI(title="Favicon Generator")
 
@@ -139,7 +140,7 @@ def render_content(lang: Lang) -> str:
     )
 
 
-def render_index(template: str, lang: Lang) -> str:
+def render_index(template: str, lang: Lang, *, editor: bool = False) -> str:
     """Setzt Sprache, Titel und SEO-Metadaten (canonical, hreflang, Open Graph, JSON-LD) in den Head."""
     seo = SEO[lang]
     other = Lang.EN if lang is Lang.DE else Lang.DE
@@ -189,18 +190,20 @@ def render_index(template: str, lang: Lang) -> str:
         ]
     )
     title_de = f"<title>{e(SEO[Lang.DE]['title'], quote=False)}</title>"
-    for marker in ('<html lang="de">', title_de, "<!--SEO-->", "<!--CONTENT-->"):
+    for marker in ('<html lang="de">', title_de, "<!--SEO-->", "<!--TOOL_NAV-->", "<!--CONTENT-->"):
         if template.count(marker) != 1:
             raise RuntimeError(f"index.html: Platzhalter fehlt oder doppelt: {marker}")
     return (
         template.replace('<html lang="de">', f'<html lang="{lang.value}">')
         .replace(title_de, f"<title>{e(seo['title'], quote=False)}</title>")
         .replace("<!--SEO-->", head)
-        .replace("<!--CONTENT-->", render_content(lang))
+        .replace("<!--TOOL_NAV-->", render_navigation(lang.value, editor))
+        .replace("<!--CONTENT-->", render_content(lang) if editor else render_landing(lang.value))
     )
 
 
 HTML_PAGES = {lang: render_index(HTML_CONTENT, lang) for lang in Lang}
+EDITOR_PAGES = {lang: render_index(HTML_CONTENT, lang, editor=True) for lang in Lang}
 
 
 async def read_limited(file: UploadFile, lang: Lang = Lang.DE) -> bytes:
@@ -221,6 +224,18 @@ def to_http_error(err: ImageValidationError, lang: Lang = Lang.DE) -> HTTPExcept
 def index(lang: str | None = Query(None)):
     # Unbekannte Werte führen bewusst nicht zu einem Fehler, sondern zur deutschen Seite
     return HTML_PAGES[Lang.EN if lang == "en" else Lang.DE]
+
+
+@app.get("/app", response_class=HTMLResponse)
+def editor(lang: str | None = Query(None)):
+    return EDITOR_PAGES[Lang.EN if lang == "en" else Lang.DE]
+
+
+@app.get("/app/", include_in_schema=False)
+def editor_with_slash(lang: str | None = Query(None)):
+    # Relative Weiterleitung funktioniert auch unter dem vorgeschalteten NGINX-Unterpfad.
+    suffix = f"?lang={lang}" if lang in {"de", "en"} else ""
+    return RedirectResponse(f"../app{suffix}")
 
 
 def render_sitemap() -> str:

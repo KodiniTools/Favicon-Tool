@@ -90,7 +90,7 @@ def test_make_square_upscales_small_images():
 def test_index():
     res = client.get("/")
     assert res.status_code == 200
-    assert "Favicon Konverter" in res.text
+    assert "Favicon Tool" in res.text
 
 
 def test_convert_default_sizes_backward_compatible():
@@ -469,8 +469,8 @@ def test_index_og_image_twitter_and_robots():
 
 
 def test_index_server_rendered_content_per_language():
-    de = client.get("/").text
-    en = client.get("/?lang=en").text
+    de = client.get("/app").text
+    en = client.get("/app?lang=en").text
     assert "<!--CONTENT-->" not in de and "<!--CONTENT-->" not in en
     body_de = de[de.index('<main id="app">') : de.index("</main>")]
     body_en = en[en.index('<main id="app">') : en.index("</main>")]
@@ -784,3 +784,28 @@ def test_app_button_styles_do_not_leak_into_partials():
     assert not re.search(r"(^|[{},])\s*button[\s{:.,\[]", css)
     assert ":where(#app) button" in css
     assert "button.footer-link:not([class*=cookie])" in css.replace("'", "").replace('"', "")
+
+
+def test_landing_and_editor_navigation_and_hero():
+    landing = client.get("/?lang=en")
+    assert '<a data-favicon-link="overview" href="./?lang=en" aria-current="page">' in landing.text
+    assert 'href="./app?lang=en"' in landing.text
+    assert 'width="1600" height="900"' in landing.text
+    image = client.get("/static/favicon-hero.webp")
+    assert image.status_code == 200
+    assert Image.open(io.BytesIO(image.content)).size == (1600, 900)
+
+    editor = client.get("/app?lang=en")
+    assert editor.status_code == 200
+    assert '<a data-favicon-link="editor" href="./app?lang=en" aria-current="page">' in editor.text
+    assert 'id="favicon-view"' in editor.text
+    assert 'class="favicon-landing' not in editor.text
+    assert client.get("/app/?lang=en", follow_redirects=False).headers["location"] == "../app?lang=en"
+
+
+def test_landing_german_copy_uses_sie_form():
+    de = client.get("/").text
+    body = de[de.index('<main id="app">') : de.index("</main>")]
+    assert "Erstellen Sie Ihr Favicon" in body
+    assert 'href="./app?lang=de"' in body
+    assert not re.search(r"\b(dein|deine|Erstelle|Wähle|Passe)\b", body)
