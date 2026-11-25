@@ -45,8 +45,8 @@
 <style scoped>
   #textPanel {
     text-align: left;
-    border: 2px dashed var(--ds-border-strong);
-    border-radius: var(--ds-radius-md);
+    border: var(--ds-border-width) solid var(--ds-border-strong);
+    border-radius: var(--ds-radius-lg);
     padding: var(--ds-space-4);
     background: var(--ds-surface-0);
   }
