@@ -20,6 +20,7 @@ const en: Record<keyof typeof de, string> = {
   mockTabDark: 'Browser tab dark',
   tabTitleDefault: 'My Website',
   dropzone: 'Choose a file or drag it here',
+  dropzoneHint: 'PNG, JPG, WebP, GIF, BMP or SVG, max. 10 MB',
   fitLegend: 'Non-square images',
   fitPad: 'Pad with transparency',
   fitCrop: 'Crop to center',

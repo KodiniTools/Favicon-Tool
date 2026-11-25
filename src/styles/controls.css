@@ -3,7 +3,8 @@
 
 :where(#app) fieldset {
   border: var(--ds-border-width) solid var(--ds-border);
-  border-radius: var(--ds-radius-md);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-1);
   margin: var(--ds-space-5) 0 0;
   padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-4);
   text-align: left;
@@ -32,6 +33,7 @@
 }
 :where(#app) input[type='text'] {
   width: 100%;
+  min-height: var(--ds-control-md);
   padding: var(--ds-space-2) var(--ds-space-3);
   border-radius: var(--ds-radius-sm);
   border: var(--ds-border-width) solid var(--ds-border-strong);
@@ -45,12 +47,16 @@
 }
 :where(#app) input[type='range'] {
   width: 100%;
+  min-height: var(--ds-control-md);
+  margin: 0;
   accent-color: var(--ds-accent);
+  cursor: pointer;
 }
+/* Farbfelder: einheitliche, gut treffbare Grösse in allen Zeilen */
 :where(#app) input[type='color'] {
-  width: 3rem;
-  height: var(--ds-control-sm);
-  padding: 2px;
+  width: 4.5rem;
+  height: var(--ds-control-md);
+  padding: 3px;
   border: var(--ds-border-width) solid var(--ds-border-strong);
   border-radius: var(--ds-radius-sm);
   background: var(--ds-surface-1);
@@ -97,8 +103,8 @@
 :where(#app) button {
   flex: 1;
   min-height: var(--ds-control-lg);
-  background: var(--ds-accent);
-  color: var(--ds-on-accent);
+  background: var(--favicon-gold);
+  color: var(--favicon-on-gold);
   border: var(--ds-border-width) solid transparent;
   padding: var(--ds-space-3);
   border-radius: var(--ds-radius-md);
@@ -111,27 +117,37 @@
     border-color var(--ds-duration) var(--ds-ease);
 }
 :where(#app) button:hover {
-  background: var(--ds-accent-hover);
-}
-:where(#app) button.secondary {
-  background: var(--ds-surface-2);
-  color: var(--ds-text);
-  border-color: var(--ds-border-strong);
-}
-:where(#app) button.secondary:hover {
-  background: var(--ds-surface-3);
-  border-color: var(--ds-accent);
+  background: var(--favicon-gold-hover);
 }
 :where(#app) button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 
-@media (max-width: 480px) {
+/* Schmale Bildschirme: Beschriftung über dem Bedienelement. Texteingabe und Schriftwahl nutzen
+   die volle Breite (leere Wert-Spalte entfällt), Schieberegler behalten ihren Wert rechts daneben. */
+@media (max-width: 600px) {
   :where(#app) .field {
-    grid-template-columns: 1fr 3.5rem;
+    grid-template-columns: minmax(0, 1fr) 3.5rem;
+    gap: var(--ds-space-1) var(--ds-space-3);
   }
   :where(#app) .field > :first-child {
     grid-column: 1 / -1;
+  }
+  :where(#app) .field > span:empty {
+    display: none;
+  }
+  :where(#app) .field > input[type='text'],
+  :where(#app) .field > .font-picker {
+    grid-column: 1 / -1;
+  }
+  :where(#app) .field + .field {
+    margin-top: var(--ds-space-4);
+  }
+  :where(#app) fieldset {
+    padding-inline: var(--ds-space-3);
+  }
+  :where(#app) .options label {
+    min-height: var(--ds-control-sm);
   }
 }

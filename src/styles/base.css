@@ -152,6 +152,31 @@ body
   button.footer-link:hover:not([class*='cookie']):not([id*='cookie']) {
   color: var(--ds-accent) !important;
 }
+/* Aktive Sprache im Sprachumschalter der Navigation: Dunkelgold mit weisser Schrift (Tokens in stage1.css).
+   Gleicher Präfix wie die Textfarben-Regeln oben, damit die Spezifität sicher darüber liegt. */
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  .global-nav-lang-btn.active,
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  .global-nav-lang-btn.active
+  * {
+  background-color: var(--favicon-gold) !important;
+  border-color: var(--favicon-gold) !important;
+  color: var(--favicon-on-gold) !important;
+}
+body
+  > :not(#app):not(script):not(.cookie-banner):not(.cookie-consent):not([class*='cookie']):not(
+    [id*='cookie']
+  )
+  .global-nav-lang-btn.active
+  * {
+  background-color: transparent !important;
+}
 /* Footer-Link als <button> (Cookie-Einstellungen) wie die übrigen Links setzen */
 body > :not(#app) button.footer-link {
   line-height: inherit;

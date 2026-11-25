@@ -19,6 +19,7 @@ export default {
   mockTabDark: 'Browser-Tab dunkel',
   tabTitleDefault: 'Meine Webseite',
   dropzone: 'Datei auswählen oder hierher ziehen',
+  dropzoneHint: 'PNG, JPG, WebP, GIF, BMP oder SVG, max. 10 MB',
   fitLegend: 'Nicht-quadratische Bilder',
   fitPad: 'Transparent auffüllen',
   fitCrop: 'Mittig zuschneiden',

@@ -815,3 +815,30 @@ def test_landing_german_copy_uses_sie_form():
     assert "Erstellen Sie Ihr Favicon" in body
     assert 'href="./app?lang=de"' in body
     assert not re.search(r"\b(dein|deine|Erstelle|Wähle|Passe)\b", body)
+
+
+def test_editor_controls_layout_stage3():
+    css = index_asset("css").replace(" ", "")
+    # Exporte breit nebeneinander, schmal untereinander
+    assert "grid-template-columns:repeat(2,minmax(0,1fr))" in css
+    assert re.search(r"@media\(max-width:760px\)\{\.outputs\[data-v-[0-9a-f]+\]\{grid-template-columns:1fr", css)
+    # Grössere Upload-Fläche und gefüllter aktiver Modus
+    assert "min-height:clamp(11rem,30vw,15rem)" in css
+    assert re.search(
+        r"\.mode label\[data-v-[0-9a-f]+\]:has\(input:checked\)\{[^}]*background:var\(--favicon-gold\)",
+        index_asset("css"),
+    )
+    js = index_asset("js")
+    assert "PNG, JPG, WebP, GIF, BMP oder SVG, max. 10 MB" in js
+    assert "PNG, JPG, WebP, GIF, BMP or SVG, max. 10 MB" in js
+
+
+def test_buttons_and_active_language_dark_gold():
+    css = index_asset("css").replace(" ", "")
+    assert "--favicon-gold:#755020" in css and "--favicon-on-gold:#fff" in css
+    assert ":where(#app)button{" in css
+    button = css.split(":where(#app)button{", 1)[1].split("}", 1)[0]
+    assert "background:var(--favicon-gold)" in button and "color:var(--favicon-on-gold)" in button
+    lang = css.split(".global-nav-lang-btn.active*{", 1)[1].split("}", 1)[0]
+    assert "background-color:var(--favicon-gold)!important" in lang
+    assert "color:var(--favicon-on-gold)!important" in lang

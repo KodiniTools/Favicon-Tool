@@ -243,7 +243,7 @@
     justify-content: space-between;
     gap: var(--ds-space-2);
     width: 100%;
-    min-height: 0;
+    min-height: var(--ds-control-md);
     padding: var(--ds-space-2) var(--ds-space-3);
     border-radius: var(--ds-radius-sm);
     border: var(--ds-border-width) solid var(--ds-border-strong);

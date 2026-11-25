@@ -80,13 +80,21 @@
 <style scoped>
   .outputs {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
     gap: var(--ds-space-5);
     margin-top: var(--ds-space-6);
+  }
+  @media (max-width: 760px) {
+    .outputs {
+      grid-template-columns: 1fr;
+    }
   }
   .output {
     display: flex;
     flex-direction: column;
     padding: var(--ds-space-4);
+    min-width: 0;
     border: var(--ds-border-width) solid var(--ds-border-strong);
     border-radius: var(--ds-radius-lg);
     background: var(--ds-surface-2);
@@ -103,7 +111,12 @@
     font-size: var(--ds-text-sm);
     color: var(--ds-text-2);
   }
+  /* Buttons beider Exporte unten auf gleicher Höhe */
   .output > button {
-    margin-top: var(--ds-space-5);
+    flex: none;
+    margin-top: auto;
+  }
+  .output > :nth-last-child(2) {
+    margin-bottom: var(--ds-space-5);
   }
 </style>

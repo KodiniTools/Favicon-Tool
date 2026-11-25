@@ -32,7 +32,13 @@
     @dragleave.prevent="dragover = false"
     @drop.prevent="onDrop"
   >
+    <svg class="dropzone-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"
+      />
+    </svg>
     <span id="label-text">{{ label }}</span>
+    <span class="dropzone-hint">{{ t('dropzoneHint') }}</span>
     <input id="fileInput" type="file" name="file" :accept="ACCEPT" @change="onChange" />
   </label>
 </template>
@@ -40,10 +46,17 @@
 <style scoped>
   .dropzone {
     position: relative;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ds-space-2);
+    min-height: clamp(11rem, 30vw, 15rem);
     border: 2px dashed var(--ds-border-strong);
-    border-radius: var(--ds-radius-md);
-    padding: var(--ds-space-10) var(--ds-space-4);
+    border-radius: var(--ds-radius-lg);
+    padding: var(--ds-space-6) var(--ds-space-4);
+    text-align: center;
+    overflow-wrap: anywhere;
     cursor: pointer;
     color: var(--ds-text-2);
     background: var(--ds-surface-0);
@@ -56,6 +69,23 @@
     border-color: var(--ds-accent);
     background: var(--ds-accent-soft);
     color: var(--ds-text);
+  }
+  .dropzone-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    fill: none;
+    stroke: var(--ds-accent);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  #label-text {
+    color: var(--ds-text);
+    font-size: var(--ds-text-lg);
+  }
+  .dropzone-hint {
+    font-size: var(--ds-text-sm);
+    color: var(--ds-text-2);
   }
   .dropzone:focus-within {
     box-shadow: var(--ds-focus-ring);
