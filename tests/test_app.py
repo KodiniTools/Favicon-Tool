@@ -869,3 +869,14 @@ def test_slider_spinner_and_reset_buttons():
     css = index_asset("css").replace(" ", "")
     # Regler kürzer: eigene Spalten für Zahlenfeld und Zurücksetzen-Knopf
     assert ":where(#app).field.slider{grid-template-columns:minmax(7rem,11rem)minmax(0,1fr)autoauto" in css
+
+
+def test_landing_title_gold_and_blue():
+    html = client.get("/").text
+    assert (
+        '<h1><span class="favicon-title-gold">Favicon</span> <span class="favicon-title-blue">Tool</span></h1>' in html
+    )
+    css = index_asset("css").replace(" ", "").lower()
+    # Hell: dunkles Gold + Logo-Blau; Dunkel: helleres Gold + helleres Logo-Blau
+    assert "--favicon-title-gold:#775115" in css and "--favicon-title-blue:#0058a0" in css
+    assert "--favicon-title-gold:#e6bc76" in css and "--favicon-title-blue:#48a0d8" in css

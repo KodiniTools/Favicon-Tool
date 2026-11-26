@@ -96,7 +96,8 @@ def render_landing(lang: str) -> str:
     )
     return (
         f'<div class="favicon-landing favicon-wrap" lang="{lang}">'
-        '<section class="favicon-hero"><div><h1>Favicon Tool</h1>'
+        '<section class="favicon-hero"><div><h1><span class="favicon-title-gold">Favicon</span> '
+        '<span class="favicon-title-blue">Tool</span></h1>'
         f'<p class="favicon-lead">{e(copy["lead"])}</p><p>{e(copy["intro"])}</p>'
         f'<a class="favicon-launch" href="./app?lang={lang}">{e(copy["cta"])} '
         '<span aria-hidden="true">→</span></a></div>'
