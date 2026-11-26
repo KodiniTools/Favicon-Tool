@@ -13,6 +13,9 @@
   --favicon-glow: #15384e;
   --favicon-panel: #13283e;
   --favicon-heading: #e8c783;
+  /* Titel „Favicon Tool“: Gold und Logo-Blau, im Dunkelmodus die helleren Töne */
+  --favicon-title-gold: #e6bc76;
+  --favicon-title-blue: #48a0d8;
   display: block;
   padding: 0 0 clamp(2rem, 5vw, 4rem);
   font-family: Supreme, system-ui, sans-serif;
@@ -26,6 +29,8 @@
   --favicon-glow: #dcebf4;
   --favicon-panel: #eaf2f7;
   --favicon-heading: #73501b;
+  --favicon-title-gold: #775115;
+  --favicon-title-blue: #0058a0;
 }
 
 .favicon-wrap {
@@ -50,6 +55,14 @@
 #app .favicon-hero h1 {
   font-size: clamp(2.6rem, 6vw, 4.5rem);
   line-height: 1.05;
+}
+
+#app .favicon-title-gold {
+  color: var(--favicon-title-gold);
+}
+
+#app .favicon-title-blue {
+  color: var(--favicon-title-blue);
 }
 
 #app .favicon-lead {
