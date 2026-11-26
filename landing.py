@@ -8,7 +8,7 @@ HERO_PATH = "static/favicon-hero.webp"
 
 COPY = {
     "de": {
-        "nav": ("Favicon Tool", "Übersicht", "Favicon-Editor"),
+        "nav": ("Favicon Generator", "Übersicht", "Favicon-Editor"),
         "theme": ("Design", "System", "Hell", "Dunkel"),
         "lead": "Ein Icon für Browser-Tabs, Lesezeichen und Startbildschirme.",
         "intro": "Erstellen Sie Ihr Favicon aus einem Bild, kurzem Text oder einem Emoji. Laden Sie eine einzelne "
@@ -39,7 +39,7 @@ COPY = {
         ),
     },
     "en": {
-        "nav": ("Favicon Tool", "Overview", "Favicon editor"),
+        "nav": ("Favicon Generator", "Overview", "Favicon editor"),
         "theme": ("Theme", "System", "Light", "Dark"),
         "lead": "An icon for browser tabs, bookmarks and home screens.",
         "intro": "Create a favicon from an image, short text or an emoji. Download a single file or a "
@@ -97,7 +97,7 @@ def render_landing(lang: str) -> str:
     return (
         f'<div class="favicon-landing favicon-wrap" lang="{lang}">'
         '<section class="favicon-hero"><div><h1><span class="favicon-title-gold">Favicon</span> '
-        '<span class="favicon-title-blue">Tool</span></h1>'
+        '<span class="favicon-title-blue">Generator</span></h1>'
         f'<p class="favicon-lead">{e(copy["lead"])}</p><p>{e(copy["intro"])}</p>'
         f'<a class="favicon-launch" href="./app?lang={lang}">{e(copy["cta"])} '
         '<span aria-hidden="true">→</span></a></div>'

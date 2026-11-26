@@ -90,7 +90,7 @@ def test_make_square_upscales_small_images():
 def test_index():
     res = client.get("/")
     assert res.status_code == 200
-    assert "Favicon Tool" in res.text
+    assert "Favicon Generator" in res.text
 
 
 def test_convert_default_sizes_backward_compatible():
@@ -874,7 +874,8 @@ def test_slider_spinner_and_reset_buttons():
 def test_landing_title_gold_and_blue():
     html = client.get("/").text
     assert (
-        '<h1><span class="favicon-title-gold">Favicon</span> <span class="favicon-title-blue">Tool</span></h1>' in html
+        '<h1><span class="favicon-title-gold">Favicon</span> <span class="favicon-title-blue">Generator</span></h1>'
+        in html
     )
     css = index_asset("css").replace(" ", "").lower()
     # Hell: dunkles Gold + Logo-Blau; Dunkel: helleres Gold + helleres Logo-Blau
