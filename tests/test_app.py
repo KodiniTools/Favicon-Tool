@@ -798,6 +798,12 @@ def test_landing_and_editor_navigation_and_hero():
     image = client.get("/static/favicon-hero.webp")
     assert image.status_code == 200
     assert Image.open(io.BytesIO(image.content)).size == (1600, 900)
+    assert 'srcset="./static/favicon-hero-800.webp 800w, ./static/favicon-hero.webp 1600w"' in landing.text
+    small = client.get("/static/favicon-hero-800.webp")
+    assert small.status_code == 200
+    assert Image.open(io.BytesIO(small.content)).size == (800, 450)
+    assert 'alt="Browser window with a favicon in the tab' in landing.text
+    assert 'alt="Browser-Fenster mit Favicon im Tab' in client.get("/").text
 
     editor = client.get("/app?lang=en")
     assert editor.status_code == 200
