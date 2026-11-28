@@ -5,6 +5,8 @@ from html import escape
 HERO_WIDTH = 1600
 HERO_HEIGHT = 900
 HERO_PATH = "static/favicon-hero.webp"
+HERO_SMALL_PATH = "static/favicon-hero-800.webp"
+HERO_SIZES = "(max-width: 760px) calc(100vw - 2rem), 600px"
 
 COPY = {
     "de": {
@@ -14,7 +16,8 @@ COPY = {
         "intro": "Erstellen Sie Ihr Favicon aus einem Bild, kurzem Text oder einem Emoji. Laden Sie eine einzelne "
         "Datei oder ein vollständiges Paket für Ihre Website herunter.",
         "cta": "Favicon erstellen",
-        "alt": "Browser-Tab mit türkisfarbenem Stern und Icon-Kacheln in verschiedenen Grössen",
+        "alt": "Browser-Fenster mit Favicon im Tab und türkisfarbenem Stern-Icon in vier Grössen "
+        "auf goldgerahmten Kacheln",
         "steps": "Ihr Favicon in drei Schritten",
         "cards": (
             ("Quelle wählen", "Verwenden Sie ein Bild bis 10 MB oder gestalten Sie ein Icon mit Text oder Emoji."),
@@ -45,7 +48,7 @@ COPY = {
         "intro": "Create a favicon from an image, short text or an emoji. Download a single file or a "
         "complete package for your website.",
         "cta": "Create a favicon",
-        "alt": "Browser tab with a turquoise star and icon tiles in several sizes",
+        "alt": "Browser window with a favicon in the tab and a turquoise star icon in four sizes on gold-framed tiles",
         "steps": "Create your favicon in three steps",
         "cards": (
             ("Choose a source", "Use an image up to 10 MB or make an icon from text or an emoji."),
@@ -101,7 +104,8 @@ def render_landing(lang: str) -> str:
         f'<p class="favicon-lead">{e(copy["lead"])}</p><p>{e(copy["intro"])}</p>'
         f'<a class="favicon-launch" href="./app?lang={lang}">{e(copy["cta"])} '
         '<span aria-hidden="true">→</span></a></div>'
-        f'<img src="./{HERO_PATH}" alt="{e(copy["alt"])}" width="{HERO_WIDTH}" height="{HERO_HEIGHT}" '
+        f'<img src="./{HERO_PATH}" srcset="./{HERO_SMALL_PATH} 800w, ./{HERO_PATH} {HERO_WIDTH}w" '
+        f'sizes="{HERO_SIZES}" alt="{e(copy["alt"])}" width="{HERO_WIDTH}" height="{HERO_HEIGHT}" '
         'fetchpriority="high"></section>'
         f'<section class="favicon-section"><h2>{e(copy["steps"])}</h2><div class="favicon-grid">{cards}</div></section>'
         f'<section class="favicon-section"><h2>{e(copy["faq"])}</h2>{answers}</section>'
