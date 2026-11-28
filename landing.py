@@ -36,6 +36,11 @@ COPY = {
                 "ICO- und PNG-Dateien, ein Apple-Touch-Icon, Android-Icons, "
                 "ein Webmanifest und HTML-Code zum Einbinden.",
             ),
+            (
+                "Wird mein Bild hochgeladen?",
+                "Ja. Ihr Bild wird zur Umwandlung auf unseren Server hochgeladen, dort im Arbeitsspeicher "
+                "verarbeitet und nicht dauerhaft gespeichert. Die fertigen Dateien laden Sie direkt herunter.",
+            ),
         ),
     },
     "en": {
@@ -62,6 +67,11 @@ COPY = {
                 "What is in the favicon package?",
                 "ICO and PNG files, an Apple touch icon, Android icons, "
                 "a web manifest and HTML code to add to your site.",
+            ),
+            (
+                "Is my image uploaded?",
+                "Yes. Your image is uploaded to our server for conversion, processed in memory there "
+                "and not stored permanently. You download the finished files directly.",
             ),
         ),
     },

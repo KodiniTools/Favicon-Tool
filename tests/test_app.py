@@ -881,3 +881,16 @@ def test_landing_title_gold_and_blue():
     # Hell: dunkles Gold + Logo-Blau; Dunkel: helleres Gold + helleres Logo-Blau
     assert "--favicon-title-gold:#775115" in css and "--favicon-title-blue:#0058a0" in css
     assert "--favicon-title-gold:#e6bc76" in css and "--favicon-title-blue:#48a0d8" in css
+
+
+def test_landing_faq_says_images_are_uploaded():
+    # Bilder werden serverseitig verarbeitet: die FAQ darf nichts anderes behaupten
+    de = client.get("/").text
+    en = client.get("/?lang=en").text
+    assert "Wird mein Bild hochgeladen?" in de
+    assert "auf unseren Server hochgeladen" in de
+    assert "Is my image uploaded?" in en
+    assert "uploaded to our server" in en
+    for html in (de, en):
+        assert "komplett im Browser" not in html
+        assert "entirely in your browser" not in html.lower()
